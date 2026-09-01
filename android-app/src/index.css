@@ -1,0 +1,71 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Pretendard Variable", "Pretendard", -apple-system, sans-serif;
+  --font-brand: "Pretendard Variable", "Pretendard", -apple-system, sans-serif;
+
+  /* BUZZ 브랜드 컬러 */
+  --color-buzz-300: #FFD86B;
+  --color-buzz-400: #FFC533;
+  --color-buzz-500: #F7B500;
+  --color-buzz-600: #E39B00;
+  --color-buzz-700: #B87C00;
+
+  /* 딥 네이비 배경 */
+  --color-ink-950: #0A0E1A;
+  --color-ink-900: #0D1220;
+  --color-ink-800: #13192B;
+  --color-ink-700: #1A2236;
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    box-sizing: border-box;
+  }
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  body {
+    background: #080C13;
+    overscroll-behavior: none;
+    font-family: var(--font-sans);
+    color: #F8FAFC;
+    letter-spacing: -0.012em;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  button, input {
+    font: inherit;
+  }
+  button {
+    cursor: pointer;
+  }
+  p, h1, h2, h3, span, button {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  ::-webkit-scrollbar { display: none; }
+  * { scrollbar-width: none; }
+}
+
+@layer components {
+  /* 산업용 관제 화면 공통 규칙: 작은 곡률, 얇은 경계선, 불필요한 발광 제거 */
+  [class*="rounded-3xl"] { border-radius: 14px !important; }
+  [class*="rounded-2xl"] { border-radius: 12px !important; }
+  [class*="rounded-xl"] { border-radius: 9px !important; }
+  [class*="shadow-2xl"],
+  [class*="shadow-lg"] { box-shadow: none !important; }
+  .font-brand { letter-spacing: 0.12em; }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .text-balance { text-wrap: balance; }
+  .touch-target { min-width: 44px; min-height: 44px; }
+}
