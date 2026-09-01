@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+.agents/
+.codex/
+.ipynb_checkpoints/
+
+audio/
+spectrogram_data/
+spectrogram_split/
+models/
+temp/
+*.h5
+*.keras
+*.pkl
