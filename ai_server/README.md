@@ -1,20 +1,25 @@
 # Buzz FastAPI 서버
 
-Buzz의 `AI 분석 → API → Android/React UI` 구간을 담당하는 서버입니다.
-Kafka와 독립적으로 개발할 수 있고, 나중에 Kafka Consumer가 `/api/internal/analyze-file`만 호출하면 연결됩니다.
+Buzz의 `음원 분석 → AI 추론 → JSON → Android` 구간을 담당하는 서버입니다.
+Kafka Consumer는 `/api/internal/analyze-file`만 호출하며, 사용자 테스트는 `/api/test/analyze`로 직접 파일을 업로드합니다.
 
-## 현재 지원 기능
+## 2026-09-02 기준
+
+- AI 입력 기준: **2초 / 48kHz**
+- 분류: `wasp / bee / other`
+- 그래프 전달: **PNG 이미지 URL이 아니라 수치 JSON**
+- 최종 AI 모델 선정 전까지 예측은 `mock-placeholder`
+- 최종 모델 선정 후 `app/services/predictor.py`의 `predict_audio()`만 실제 추론 코드로 교체
+
+## 주요 API
 
 - `GET /health` — 서버 생존 확인
-- `POST /api/test/analyze` — 테스트 탭 MP3/WAV 업로드 분석
-  - 운영 상태/문 상태에는 영향 없음
-  - Waveplot / FFT / Mel-Spectrogram / MFCC 실제 이미지 생성
-  - AI 예측은 최종 모델 확정 전까지 `mock-placeholder`
-- `POST /api/internal/analyze-file` — Kafka Consumer 연동용 파일 경로 분석
-  - 운영 상태 갱신
-  - 말벌 판정이면 가상 문 자동 `CLOSED`
-  - 위험 이력 저장
-- `GET /api/status/{site_id}` — 현재 사업장 상태 조회
+- `POST /api/test/analyze` — 사용자 테스트 MP3/WAV 직접 업로드
+  - 자동 감지 상태, 가상 문, 자동 감지 이력에는 영향 없음
+- `POST /api/internal/analyze-file` — Kafka Consumer 연동용
+  - 분석 후 사업장 상태 갱신
+  - 말벌 판정 시 가상 문 자동 `CLOSED`
+- `GET /api/status/{site_id}` — 사업장 상태 조회
 - `GET /api/history` — 위험/문 제어 이력 조회
 - `POST /api/door/{site_id}` — 가상 문 수동 열기/닫기
 
@@ -23,7 +28,7 @@ Kafka와 독립적으로 개발할 수 있고, 나중에 Kafka Consumer가 `/api
 Windows PowerShell 기준:
 
 ```powershell
-cd Buzz-dev\ai_server
+cd ai_server
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
@@ -36,70 +41,92 @@ python run.py
 uvicorn app.main:app --reload --port 8000
 ```
 
-확인:
-
-- API 문서: http://localhost:8000/docs
+- Swagger: http://localhost:8000/docs
 - Health: http://localhost:8000/health
 
-## 테스트 탭 API
+## 사용자 테스트
 
 `POST /api/test/analyze`
 
-FormData의 `file`에 MP3/WAV 파일을 넣습니다.
+`multipart/form-data`의 `file`에 MP3/WAV를 넣습니다.
 
 응답 예시:
 
 ```json
 {
-  "analysis_id": "...",
-  "class": "wasp",
-  "confidence": 0.968,
-  "probabilities": {
-    "wasp": 0.968,
-    "bee": 0.021,
-    "other": 0.011
+  "analysisId": "abc123",
+  "audio": {
+    "fileName": "wasp_001.wav",
+    "sampleRate": 48000,
+    "duration": 2.0
   },
-  "duration_sec": 1.0,
-  "source": "user_test",
-  "timestamp": "2026-09-02T10:00:00+09:00",
-  "model_name": "mock-placeholder",
-  "images": {
-    "waveplot": "http://localhost:8000/analysis/.../waveplot.png",
-    "fft": "http://localhost:8000/analysis/.../fft.png",
-    "mel": "http://localhost:8000/analysis/.../mel.png",
-    "mfcc": "http://localhost:8000/analysis/.../mfcc.png"
+  "prediction": {
+    "label": "wasp",
+    "confidence": 0.968,
+    "probabilities": {
+      "wasp": 0.968,
+      "bee": 0.021,
+      "other": 0.011
+    }
+  },
+  "waveform": {
+    "amplitude": [0.01, 0.03]
+  },
+  "fft": {
+    "frequency": [0.0, 23.4],
+    "magnitudeDb": [-42.1, -31.2]
+  },
+  "spectrogram": {
+    "time": [0.0, 0.01],
+    "frequency": [0.0, 31.2],
+    "db": [[-80.0, -65.2]]
+  },
+  "mfcc": {
+    "time": [0.0, 0.01],
+    "coefficients": [[-210.2, -205.1]]
+  },
+  "meta": {
+    "source": "user_test",
+    "modelName": "mock-placeholder",
+    "timestamp": "2026-09-02T17:00:00+09:00"
   }
 }
 ```
 
-## Kafka 담당자와 연결할 때
+Waveform은 96,000개 샘플 전체를 전송하지 않고 약 1,500개 포인트로 축소합니다. FFT, Mel-Spectrogram, MFCC도 응답 크기를 제한합니다.
 
-Kafka Consumer가 음원 경로를 받은 뒤 다음 API만 호출하면 됩니다.
+## Kafka 연결
+
+Kafka Consumer는 다음 API를 호출합니다.
 
 `POST /api/internal/analyze-file`
 
 ```json
 {
-  "file_path": "C:/Buzz/audio/incoming/wasp_001.wav",
+  "file_path": "C:/Buzz/data/raw/wasp_001.wav",
   "site_id": 3,
   "source": "kafka"
 }
 ```
 
-즉 역할은 다음처럼 분리됩니다.
-
 ```text
-Producer → Kafka → Consumer
-                    ↓
-       POST /api/internal/analyze-file
-                    ↓
-              FastAPI + AI
-                    ↓
-         상태 / 이력 / Android UI
+자동 감지 음원
+  ↓
+Kafka Producer
+  ↓
+Kafka Topic
+  ↓
+Kafka Consumer
+  ↓
+POST /api/internal/analyze-file
+  ↓
+FastAPI
+  ↓
+2초 / 48kHz + Librosa
+  ↓
+Best Model (현재는 Mock)
+  ↓
+수치 JSON
+  ↓
+Android UI
 ```
-
-## 실제 AI 모델 연결 위치
-
-`app/services/predictor.py`의 `predict_audio()` 함수만 최종 모델 추론 코드로 교체하면 됩니다.
-
-현재 Mock 모드는 UI/API 개발을 먼저 할 수 있도록 만든 임시 기능입니다. 실제 성능을 의미하지 않습니다.

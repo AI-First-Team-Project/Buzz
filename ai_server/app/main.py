@@ -1,14 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
-from .config import ANALYSIS_DIR
 from .routers import analysis, health, monitoring
 
 app = FastAPI(
     title="Buzz AI Sound Detection API",
     description="말벌/꿀벌/Other 사운드 분석 및 Buzz 앱 연동 API",
-    version="0.1.0",
+    version="0.2.0",
 )
 
 # 개발 중 React(Vite), Android WebView/Capacitor 연동을 위해 허용.
@@ -21,8 +19,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/analysis", StaticFiles(directory=str(ANALYSIS_DIR)), name="analysis")
-
 app.include_router(health.router)
 app.include_router(analysis.router)
 app.include_router(monitoring.router)
@@ -34,4 +30,6 @@ def root():
         "service": "Buzz AI Sound Detection API",
         "docs": "/docs",
         "health": "/health",
+        "audio_standard": "2sec / 48kHz",
+        "analysis_output": "numeric JSON",
     }

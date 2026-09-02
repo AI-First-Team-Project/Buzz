@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Literal
+
 from pydantic import BaseModel, Field
 
 ClassName = Literal["wasp", "bee", "other"]
-SourceName = Literal["user_test", "kafka", "manual"]
+SourceName = Literal["user_test", "kafka"]
 DoorState = Literal["OPEN", "CLOSED"]
 SystemState = Literal["NORMAL", "DANGER"]
 
@@ -14,23 +15,59 @@ class Probabilities(BaseModel):
     other: float = Field(ge=0, le=1)
 
 
-class AnalysisImages(BaseModel):
-    waveplot: str
-    fft: str
-    mel: str
-    mfcc: str
+class AudioInfo(BaseModel):
+    file_name: str = Field(alias="fileName")
+    sample_rate: int = Field(alias="sampleRate")
+    duration: float
+
+    model_config = {"populate_by_name": True}
+
+
+class PredictionInfo(BaseModel):
+    label: ClassName
+    confidence: float = Field(ge=0, le=1)
+    probabilities: Probabilities
+
+
+class WaveformData(BaseModel):
+    amplitude: list[float]
+
+
+class FFTData(BaseModel):
+    frequency: list[float]
+    magnitude_db: list[float] = Field(alias="magnitudeDb")
+
+    model_config = {"populate_by_name": True}
+
+
+class SpectrogramData(BaseModel):
+    time: list[float]
+    frequency: list[float]
+    db: list[list[float]]
+
+
+class MFCCData(BaseModel):
+    time: list[float]
+    coefficients: list[list[float]]
+
+
+class AnalysisMeta(BaseModel):
+    source: SourceName
+    model_name: str = Field(alias="modelName")
+    timestamp: datetime
+
+    model_config = {"populate_by_name": True}
 
 
 class AnalysisResponse(BaseModel):
-    analysis_id: str
-    class_name: ClassName = Field(alias="class")
-    confidence: float = Field(ge=0, le=1)
-    probabilities: Probabilities
-    duration_sec: float
-    source: SourceName
-    timestamp: datetime
-    model_name: str
-    images: AnalysisImages
+    analysis_id: str = Field(alias="analysisId")
+    audio: AudioInfo
+    prediction: PredictionInfo
+    waveform: WaveformData
+    fft: FFTData
+    spectrogram: SpectrogramData
+    mfcc: MFCCData
+    meta: AnalysisMeta
 
     model_config = {"populate_by_name": True}
 
@@ -66,4 +103,4 @@ class DoorCommand(BaseModel):
 class AnalyzePathRequest(BaseModel):
     file_path: str
     site_id: int = 3
-    source: Literal["kafka", "manual"] = "kafka"
+    source: Literal["kafka"] = "kafka"
