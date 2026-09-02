@@ -451,3 +451,21 @@ venv/
 | ② 데이터 / 인프라 엔지니어 | 강성민 |
 | ③ 프론트엔드 / UI 엔지니어 | 김형준 |
 | ④ MLOps / 운영 엔지니어 | 오금빈 |
+
+---
+
+## FastAPI 서버 실행
+
+`ai_server/`에 Buzz 앱 연동용 FastAPI 서버가 포함되어 있습니다.
+
+```bash
+cd ai_server
+python -m venv venv
+# Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python run.py
+```
+
+- Swagger: `http://localhost:8000/docs`
+- Health: `http://localhost:8000/health`
+- 자세한 API 및 Kafka 연동 방법: `ai_server/README.md`
