@@ -1,6 +1,6 @@
 # ==================================================
 # Buzz Project - root .gitignore
-# Python / FastAPI / AI / Kafka / React / Android
+# Python / FastAPI / AI / React / Android
 # ==================================================
 
 # ---------- Python ----------
@@ -33,7 +33,7 @@ ai_server/uploads/*
 ai_server/static/analysis/*
 !ai_server/static/analysis/.gitkeep
 
-# ---------- Kafka / incoming audio ----------
+# ---------- Incoming audio ----------
 # Runtime input folder: keep the folder itself, not incoming files
 data/raw/*
 !data/raw/.gitkeep

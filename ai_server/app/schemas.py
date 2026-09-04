@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 ClassName = Literal["wasp", "bee", "other"]
-SourceName = Literal["user_test", "kafka"]
+SourceName = Literal["user_test", "auto_detection"]
 DoorState = Literal["OPEN", "CLOSED"]
 SystemState = Literal["NORMAL", "DANGER"]
 
@@ -103,4 +103,4 @@ class DoorCommand(BaseModel):
 class AnalyzePathRequest(BaseModel):
     file_path: str
     site_id: int = 3
-    source: Literal["kafka"] = "kafka"
+    source: Literal["auto_detection"] = "auto_detection"
