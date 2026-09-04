@@ -72,10 +72,10 @@ export default function HomePage({ setPage, onOpenSite }) {
     return () => clearInterval(timer);
   }, [lastAnalysisAt]);
 
-  // UI 데모용 Kafka 입력 시뮬레이션:
-  // 10~30초 사이의 랜덤 간격으로 새 음원 조각이 도착한 것으로 보고
-  // "마지막 분석" 시각을 갱신한다.
-  // 실제 연동 시에는 FastAPI/Kafka Consumer 결과 수신 시 setLastAnalysisAt(Date.now())를 호출하면 된다.
+  // UI 데모용 자동 감지 시뮬레이션:
+  // 임시로 랜덤 간격마다 "마지막 분석" 시각을 갱신한다.
+  // 실제 연동 시에는 FastAPI /api/auto/analyze 결과 수신 시
+  // setLastAnalysisAt(Date.now())를 호출하면 된다.
   useEffect(() => {
     let timer;
     const scheduleNext = () => {

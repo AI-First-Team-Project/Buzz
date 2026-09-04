@@ -371,7 +371,7 @@
 .buzz-settings-footnote{text-align:center;font-size:7px;line-height:1.5;color:#9aa1a9;margin:8px 12px 0}
 
 
-/* ===== Portfolio analysis + Kafka-like last analysis refinement ===== */
+/* ===== Portfolio analysis + automatic detection refinement ===== */
 .buzz-analysis-site-selector{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   background:#fff;border:1px solid #eadfcf;border-radius:18px;padding:12px 13px;

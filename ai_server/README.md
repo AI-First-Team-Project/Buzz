@@ -1,132 +1,96 @@
-# Buzz FastAPI 서버
+# 🐝 Buzz FastAPI Server
 
-Buzz의 `음원 분석 → AI 추론 → JSON → Android` 구간을 담당하는 서버입니다.
-Kafka Consumer는 `/api/internal/analyze-file`만 호출하며, 사용자 테스트는 `/api/test/analyze`로 직접 파일을 업로드합니다.
+Buzz의 Python 백엔드입니다.
 
-## 2026-09-02 기준
+최종 아키텍처에서는 Kafka를 사용하지 않고 **FastAPI가 자동 감지 및 사용자 테스트 음향 입력을 직접 수신**합니다. 이후 2초·48kHz 기준 전처리, AI 추론, 음향 분석 수치 JSON 생성, 사업장 상태 갱신을 담당합니다.
 
-- AI 입력 기준: **2초 / 48kHz**
-- 분류: `wasp / bee / other`
-- 그래프 전달: **PNG 이미지 URL이 아니라 수치 JSON**
-- 최종 AI 모델 선정 전까지 예측은 `mock-placeholder`
-- 최종 모델 선정 후 `app/services/predictor.py`의 `predict_audio()`만 실제 추론 코드로 교체
+## 역할
 
-## 주요 API
-
-- `GET /health` — 서버 생존 확인
-- `POST /api/test/analyze` — 사용자 테스트 MP3/WAV 직접 업로드
-  - 자동 감지 상태, 가상 문, 자동 감지 이력에는 영향 없음
-- `POST /api/internal/analyze-file` — Kafka Consumer 연동용
-  - 분석 후 사업장 상태 갱신
-  - 말벌 판정 시 가상 문 자동 `CLOSED`
-- `GET /api/status/{site_id}` — 사업장 상태 조회
-- `GET /api/history` — 위험/문 제어 이력 조회
-- `POST /api/door/{site_id}` — 가상 문 수동 열기/닫기
+```text
+음향 입력
+→ FastAPI
+→ 2초 / 48kHz 전처리
+→ Best Model 추론
+→ wasp / bee / other
+→ 분석 수치 JSON
+→ Android
+```
 
 ## 실행
 
-Windows PowerShell 기준:
-
-```powershell
+```bash
 cd ai_server
-python -m venv venv
-venv\Scripts\activate
 pip install -r requirements.txt
 python run.py
 ```
 
-또는:
+- Swagger: `http://localhost:8000/docs`
+- Health: `GET http://localhost:8000/health`
 
-```powershell
-uvicorn app.main:app --reload --port 8000
-```
+## 주요 API
 
-- Swagger: http://localhost:8000/docs
-- Health: http://localhost:8000/health
+### `GET /health`
+FastAPI 서버 동작 여부 확인
 
-## 사용자 테스트
+### `POST /api/test/analyze`
+사용자 테스트용 MP3/WAV 업로드. 자동 감지 상태/문/이력에는 영향을 주지 않음
 
-`POST /api/test/analyze`
+### `POST /api/auto/analyze`
+자동 감지용 직접 업로드
 
-`multipart/form-data`의 `file`에 MP3/WAV를 넣습니다.
+Form Data:
+- `file`: MP3/WAV
+- `site_id`: 사업장 ID, 기본값 3
 
-응답 예시:
-
-```json
-{
-  "analysisId": "abc123",
-  "audio": {
-    "fileName": "wasp_001.wav",
-    "sampleRate": 48000,
-    "duration": 2.0
-  },
-  "prediction": {
-    "label": "wasp",
-    "confidence": 0.968,
-    "probabilities": {
-      "wasp": 0.968,
-      "bee": 0.021,
-      "other": 0.011
-    }
-  },
-  "waveform": {
-    "amplitude": [0.01, 0.03]
-  },
-  "fft": {
-    "frequency": [0.0, 23.4],
-    "magnitudeDb": [-42.1, -31.2]
-  },
-  "spectrogram": {
-    "time": [0.0, 0.01],
-    "frequency": [0.0, 31.2],
-    "db": [[-80.0, -65.2]]
-  },
-  "mfcc": {
-    "time": [0.0, 0.01],
-    "coefficients": [[-210.2, -205.1]]
-  },
-  "meta": {
-    "source": "user_test",
-    "modelName": "mock-placeholder",
-    "timestamp": "2026-09-02T17:00:00+09:00"
-  }
-}
-```
-
-Waveform은 96,000개 샘플 전체를 전송하지 않고 약 1,500개 포인트로 축소합니다. FFT, Mel-Spectrogram, MFCC도 응답 크기를 제한합니다.
-
-## Kafka 연결
-
-Kafka Consumer는 다음 API를 호출합니다.
-
-`POST /api/internal/analyze-file`
+### `POST /api/internal/analyze-file`
+서버 로컬 또는 공유 경로 음원 분석
 
 ```json
 {
   "file_path": "C:/Buzz/data/raw/wasp_001.wav",
   "site_id": 3,
-  "source": "kafka"
+  "source": "auto_detection"
 }
 ```
 
+### 상태/이력/문 제어
+- `GET /api/status/{site_id}`
+- `GET /api/history`
+- `POST /api/door/{site_id}`
+
+## 분석 응답
+
+- Prediction: `label`, `confidence`, `probabilities`
+- Waveform: `amplitude[]`
+- FFT: `frequency[]`, `magnitudeDb[]`
+- Mel-Spectrogram: `time[]`, `frequency[]`, `db[][]`
+- MFCC: `time[]`, `coefficients[][]`
+- Meta: `source`, `modelName`, `timestamp`
+
+## 현재 구현 상태
+
+현재 FastAPI 기본 구조와 분석 데이터 계약은 구성되어 있습니다.
+
+최종 AI 모델은 아직 선정/연결 전이므로 `app/services/predictor.py`가 mock 또는 임시 predictor 상태라면 다음 순서로 교체합니다.
+
 ```text
-자동 감지 음원
-  ↓
-Kafka Producer
-  ↓
-Kafka Topic
-  ↓
-Kafka Consumer
-  ↓
-POST /api/internal/analyze-file
-  ↓
-FastAPI
-  ↓
-2초 / 48kHz + Librosa
-  ↓
-Best Model (현재는 Mock)
-  ↓
-수치 JSON
-  ↓
-Android UI
+6개 모델 실제 성능 비교
+→ Best Model 선정
+→ 서비스용 Python 모듈화
+→ predictor.py 실제 모델 로딩/추론 코드 적용
+→ FastAPI API 테스트
+→ Android 연동
 ```
+
+## 영상 데이터
+
+영상은 AI 입력이 아니라 Android의 상태 시각화 용도입니다.
+
+```text
+NORMAL → 정상 양봉장/꿀벌 영상
+DANGER → 말벌 상황 영상
+```
+
+## 최종 제외 기술
+
+- Kafka: 현재 규모 대비 복잡도가 높아 제거
