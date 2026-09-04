@@ -37,7 +37,7 @@ def normalize_rms(y, target_db = TARGET_DB):
 - 짧은 오디오는 zero padding
 '''
 def load_audio_file(audio_path, sr = SR, duration = DURATION):
-    y, sr = librosa.load(audio_path, sr = sr, mono = True)
+    y, sr = librosa.load(audio_path, sr = sr, mono = True, offset = 0.0, duration = 2.0)
 
     target_length = int(sr * duration)
 
