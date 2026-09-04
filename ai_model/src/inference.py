@@ -4,6 +4,7 @@ Ensemble
 analyze_audio()
 '''
 
+import time
 import numpy as np
 
 from .config import CLASSES, SR, DURATION
@@ -50,7 +51,7 @@ def predict_with_mobilenet(y, sr, model):
 def predict_with_crnn(y, sr, model):
     mel = create_mel_spectrogram_from_audio(y, sr)
     model_input = prepare_crnn_dataset(np.array([mel], dtype = np.float32))
-    probs = model.predict(model_input, verbose = 0)
+    probs = model.predict(model_input, verbose = 0)[0]
 
     return make_prediction_result(probs)
 
@@ -116,12 +117,20 @@ model_name:
 - single 일 때 사용할 모델 이름
 '''
 def analyze_audio(audio_path, models, inference_type, model_name = None):
+    total_start = time.perf_counter()
+
+    start = time.perf_counter()
+
     # 오디오 1회 로드
     y, sr = load_audio_file(audio_path, sr = SR, duration = DURATION)
+
+    audio_time = time.perf_counter() - start
 
     # =========================
     # Prediction
     # =========================
+
+    start = time.perf_counter()
 
     if inference_type == 'ensemble':
         prediction_result = predict_with_ensemble(y, sr, models)
@@ -139,25 +148,39 @@ def analyze_audio(audio_path, models, inference_type, model_name = None):
     else:
         raise ValueError(f'지원하지 않는 추론 방식입니다: {inference_type}')
 
+    inference_time = time.perf_counter() - start
+
     # =========================
     # UI Visualization
     # =========================
 
+    start = time.perf_counter()
+
     visualization_data = create_audio_visualization_data(y, sr)
+
+    visualization_time = time.perf_counter() - start
 
     # =========================
     # JSON 반환 형태
     # =========================
 
     probabilities = {
-        CLASSES[i]: float(prediction_result['probabilities][i]'])
+        CLASSES[i]: float(prediction_result['probabilities'][i])
         for i in range(len(CLASSES))
     }
+
+    total_time = time.perf_counter() - total_start
 
     return {
         'model': used_model,
         'prediction': prediction_result['prediction'],
         'confidence': prediction_result['confidence'],
         'probabilities': probabilities,
+        'timing': {
+            'audio': audio_time,
+            'inference': inference_time,
+            'visualization': visualization_time,
+            'total': total_time
+        },
         **visualization_data
     }

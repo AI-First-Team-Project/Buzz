@@ -18,7 +18,7 @@ MODEL_DIR = BASE_DIR / 'models'
 
 CLASSES = ['wasp', 'bee', 'other']
 
-SR = 48000
+SR = 24000
 DURATION = 2.0
 
 SAMPLES_PER_TRACK = int(SR * DURATION)
@@ -32,7 +32,7 @@ TARGET_DB = -20.0
 IMG_HEIGHT = 128
 IMG_WIDTH = 128
 
-N_FFT = 2048
+N_FFT = 1024
 HOP_LENGTH = 256
 N_MELS = 128
 
