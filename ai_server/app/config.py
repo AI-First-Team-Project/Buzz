@@ -4,10 +4,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-# Buzz 프로젝트 공통 AI 입력 기준 (2026-09-02 확정)
-SAMPLE_RATE = 48_000
+# ai_model/src/config.py의 학습/추론 전처리 기준과 동일하게 유지한다.
+SAMPLE_RATE = 24_000
 DURATION_SEC = 2.0
-N_FFT = 2048
+TARGET_DB = -20.0
+N_FFT = 1024
 HOP_LENGTH = 256
 N_MELS = 128
 N_MFCC = 20

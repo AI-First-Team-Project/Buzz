@@ -30,6 +30,6 @@ def root():
         "service": "Buzz AI Sound Detection API",
         "docs": "/docs",
         "health": "/health",
-        "audio_standard": "2sec / 48kHz",
+        "audio_standard": "2sec / 24kHz",
         "analysis_output": "numeric JSON",
     }
