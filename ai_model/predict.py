@@ -50,12 +50,12 @@ def main():
     # =========================
 
     print('===== 분석 결과 =====')
-    print('사용 모델 : ', result['model'])
-    print('예측 결과 : ', result['prediction'])
-    print(f"신뢰도 : {result['confidence']:.4f}")
+    print('사용 모델 : ', result['meta']['modelName'])
+    print('예측 결과 : ', result['prediction']['label'])
+    print(f"신뢰도 : {result['prediction']['confidence']:.4f}")
     print(f'분석 시간 : {elapsed_time:.4f}초')
     print('클래스 확률 : ')
-    for class_name, probability in result['probabilities'].items():
+    for class_name, probability in result['prediction']['probabilities'].items():
         print(f'{class_name} : {probability:.4f}')
 
     print()

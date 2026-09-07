@@ -36,7 +36,7 @@ async def test_analyze(file: UploadFile = File(...)):
     """사용자 테스트 전용. 자동 감지 상태/문/이력에는 영향을 주지 않는다."""
     try:
         named_path = _save_upload(file)
-        return analyze_audio(named_path, "user_test")
+        return analyze_audio(named_path, "user_test", file.filename)
     except HTTPException:
         raise
     except Exception as exc:
@@ -51,7 +51,7 @@ async def auto_analyze(
     """자동 감지용 직접 업로드 엔드포인트. Kafka 없이 FastAPI가 음원을 직접 수신한다."""
     try:
         named_path = _save_upload(file)
-        result = analyze_audio(named_path, "auto_detection")
+        result = analyze_audio(named_path, "auto_detection", file.filename)
         apply_prediction(
             site_id=site_id,
             class_name=result.prediction.label,

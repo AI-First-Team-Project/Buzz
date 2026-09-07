@@ -151,7 +151,7 @@ def analyze_audio(audio_path, models, inference_type, model_name = None):
     inference_time = time.perf_counter() - start
 
     # =========================
-    # UI Visualization
+    # UI Visualization (로컬 실험용; 서버는 공통 전처리 후 그래프를 생성한다.)
     # =========================
 
     start = time.perf_counter()
@@ -172,10 +172,13 @@ def analyze_audio(audio_path, models, inference_type, model_name = None):
     total_time = time.perf_counter() - total_start
 
     return {
-        'model': used_model,
-        'prediction': prediction_result['prediction'],
-        'confidence': prediction_result['confidence'],
-        'probabilities': probabilities,
+        # FastAPI 계약과 같은 이름/구조. 확률은 0~1이며 % 변환은 앱에서만 한다.
+        'prediction': {
+            'label': prediction_result['prediction'],
+            'confidence': prediction_result['confidence'],
+            'probabilities': probabilities,
+        },
+        'meta': {'modelName': used_model},
         'timing': {
             'audio': audio_time,
             'inference': inference_time,

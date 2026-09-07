@@ -30,6 +30,8 @@ class PredictionInfo(BaseModel):
 
 
 class WaveformData(BaseModel):
+    # 축소된 파형의 실제 시간(초). 원본 sampleRate로 배열 인덱스를 나누면 안 된다.
+    time: list[float]
     amplitude: list[float]
 
 

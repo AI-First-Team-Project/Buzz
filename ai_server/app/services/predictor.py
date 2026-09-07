@@ -10,8 +10,8 @@ from ..schemas import Probabilities
 MODEL_NAME = "mock-placeholder"
 
 
-def predict_audio(audio_path: Path) -> tuple[str, float, Probabilities, str]:
-    """Return (class_name, confidence, probabilities, model_name).
+def predict_audio(audio_path: Path) -> dict:
+    """모델과 같은 prediction/meta 계약을 반환한다. 최종 모델은 아직 미선정.
 
     주의: 지금은 UI/API 통합 테스트용 Mock 예측이다.
     파일명에 wasp/hornet/vespa/말벌, bee/honeybee/꿀벌, other가 있으면
@@ -21,11 +21,16 @@ def predict_audio(audio_path: Path) -> tuple[str, float, Probabilities, str]:
 
     if any(key in name for key in ("wasp", "hornet", "vespa", "말벌")):
         probs = Probabilities(wasp=0.968, bee=0.021, other=0.011)
-        return "wasp", probs.wasp, probs, MODEL_NAME
-
-    if any(key in name for key in ("bee", "honeybee", "꿀벌")):
+        label = "wasp"
+    elif any(key in name for key in ("bee", "honeybee", "꿀벌")):
         probs = Probabilities(wasp=0.032, bee=0.934, other=0.034)
-        return "bee", probs.bee, probs, MODEL_NAME
-
-    probs = Probabilities(wasp=0.08, bee=0.12, other=0.80)
-    return "other", probs.other, probs, MODEL_NAME
+        label = "bee"
+    else:
+        probs = Probabilities(wasp=0.08, bee=0.12, other=0.80)
+        label = "other"
+    # 추후 ai_model의 analyze_audio(...) 반환값으로 교체해도 서비스/앱 계약은 유지된다.
+    return {
+        "prediction": {"label": label, "confidence": getattr(probs, label),
+                       "probabilities": probs.model_dump()},
+        "meta": {"modelName": MODEL_NAME},
+    }

@@ -73,7 +73,10 @@ def create_analysis_data(
     y, sr = load_audio(audio_path)
 
     # Waveform: 48,000 raw samples -> about 1,500 points for UI rendering.
-    waveform = WaveformData(amplitude=_round_list(_sample_1d(y, WAVEFORM_POINTS)))
+    waveform = WaveformData(
+        time=_round_list(_sample_1d(np.arange(len(y)) / sr, WAVEFORM_POINTS)),
+        amplitude=_round_list(_sample_1d(y, WAVEFORM_POINTS)),
+    )
 
     # FFT: convert magnitude to dB, then reduce points for transport/rendering.
     fft_values = np.fft.rfft(y)
