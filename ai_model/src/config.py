@@ -16,7 +16,10 @@ MODEL_DIR = BASE_DIR / 'models'
 # Audio
 # =========================
 
-CLASSES = ['wasp', 'bee', 'other']
+# 고정 인덱스: 0 = 말벌 없음, 1 = 말벌 포함(단독/혼합 모두).
+CLASSES = ['non_wasp', 'wasp']
+WASP_INDEX = CLASSES.index('wasp')
+WASP_THRESHOLD = 0.5  # 초기값. 조정 시 validation 데이터만 사용한다.
 
 SR = 24000
 DURATION = 2.0

@@ -2,7 +2,9 @@
 실제 WAV 넣어서 추론 테스트
 '''
 
+import argparse
 import time
+from src.config import WASP_THRESHOLD
 from src.model_loader import load_models
 from src.inference import analyze_audio
 
@@ -11,13 +13,21 @@ def main():
     # 모델 로드
     # =========================
 
-    models = load_models()
+    parser = argparse.ArgumentParser(description='2초 구간의 말벌 포함 여부 이진분류')
+    parser.add_argument('audio_path', help='분석할 음원 경로')
+    parser.add_argument('--model', default='MobileNetV2',
+                        choices=['CNN', 'MobileNetV2', 'CRNN', 'RandomForest', 'LightGBM', 'XGBoost'])
+    parser.add_argument('--ensemble', action='store_true', help='6개 모델 확률 평균')
+    parser.add_argument('--threshold', type=float, default=WASP_THRESHOLD)
+    parser.add_argument('--offset', type=float, default=0.0, help='분석 시작 위치(초)')
+    args = parser.parse_args()
+    models = load_models(None if args.ensemble else [args.model])
 
     # =========================
     # 테스트할 오디오 파일
     # =========================
 
-    audio_path = 'audio/wasp/wasp_0010.wav'
+    audio_path = args.audio_path
 
     # =========================
     # 추론 방식
@@ -27,8 +37,8 @@ def main():
     # inference_type = 'ensemble' / 'single'
     # model_name = None / 'CNN', 'MobileNetV2', 'CRNN', 'RandomForest', 'LightGBM', 'XGBoost'
 
-    inference_type = 'single'
-    model_name = 'MobileNetV2'
+    inference_type = 'ensemble' if args.ensemble else 'single'
+    model_name = None if args.ensemble else args.model
 
     # =========================
     # 분석
@@ -40,7 +50,9 @@ def main():
         audio_path = audio_path,
         models = models,
         inference_type = inference_type,
-        model_name = model_name
+        model_name = model_name,
+        threshold = args.threshold,
+        offset = args.offset,
     )
 
     elapsed_time = time.perf_counter() - start_time
@@ -52,6 +64,8 @@ def main():
     print('===== 분석 결과 =====')
     print('사용 모델 : ', result['meta']['modelName'])
     print('예측 결과 : ', result['prediction']['label'])
+    print('말벌 포함 : ', result['prediction']['label'] == 'wasp')
+    print('말벌 판정 임계값 : ', result['meta']['waspThreshold'])
     print(f"신뢰도 : {result['prediction']['confidence']:.4f}")
     print(f'분석 시간 : {elapsed_time:.4f}초')
     print('클래스 확률 : ')

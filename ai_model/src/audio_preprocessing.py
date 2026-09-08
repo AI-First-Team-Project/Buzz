@@ -36,18 +36,17 @@ def normalize_rms(y, target_db = TARGET_DB):
 - RMS 정규화
 - 짧은 오디오는 zero padding
 '''
-def load_audio_file(audio_path, sr = SR, duration = DURATION):
-    y, sr = librosa.load(audio_path, sr = sr, mono = True, offset = 0.0, duration = 2.0)
+def load_audio_file(audio_path, sr = SR, duration = DURATION, offset = 0.0):
+    if not np.isfinite(duration) or duration <= 0 or not np.isfinite(offset) or offset < 0:
+        raise ValueError('duration은 양수, offset은 0 이상의 유한한 값이어야 합니다.')
+    y, sr = librosa.load(audio_path, sr = sr, mono = True, offset = offset, duration = duration)
+    if y.size == 0 or not np.all(np.isfinite(y)):
+        raise ValueError('분석할 오디오 구간이 비어 있거나 유효하지 않습니다.')
 
     target_length = int(sr * duration)
 
-    # 지정 길이보다 긴 경우
-    if len(y) > target_length:
-        max_start = (len(y) - target_length)
-
-        start = np.random.randint(0, max_start + 1)
-
-        y = y[start:start + target_length]
+    # 학습/추론에서 동일한 구간 사용. 긴 파일 전체 순회는 공급기 단계에서 처리.
+    y = y[:target_length]
 
     # RMS 정규화
     y = normalize_rms(y)

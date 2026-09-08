@@ -40,7 +40,8 @@ data/raw/*
 
 # ---------- AI generated artifacts ----------
 # Generated datasets / features / temporary outputs
-audio/
+/ai_model/audio/
+/ai_model/demo_audio/
 spectrogram_data/
 spectrogram_split/
 temp/
@@ -92,6 +93,9 @@ Thumbs.db
 desktop.ini
 
 # ---------- Logs / temp ----------
+# Temporary presentation draft
+/temp.md
+
 *.log
 *.tmp
 *.temp
