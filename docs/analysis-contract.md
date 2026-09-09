@@ -1,13 +1,13 @@
 # 음원 분석 데이터 계약
 
 FastAPI의 `app/schemas.py::AnalysisResponse`를 앱 응답의 기준으로 사용한다.
-최종 모델은 아직 미선정이며 서버 예측은 `mock-placeholder`이다.
+현재 서버는 `ai_server/app/config.py`에서 지정한 실제 이진분류 모델을 사용한다.
 
 ## 흐름
 
 1. 앱 테스트 화면이 `POST /api/test/analyze`에 `multipart/form-data`의 `file`로 WAV/MP3를 업로드한다.
 2. 서버는 24kHz, mono, 첫 2초, RMS -20dB 정규화 후 zero padding으로 그래프를 생성한다.
-3. 추론 어댑터가 `prediction`과 `meta.modelName`을 반환한다. 현재는 파일명 기반 mock이다.
+3. 추론 어댑터가 실제 모델의 `prediction`과 `meta.modelName`을 반환한다.
 4. 서버가 예측을 스키마로 검증하고 음원 정보, 그래프, ID, 시각을 붙여 JSON으로 응답한다.
 5. 앱은 응답을 검증하고 한국어 라벨과 %로 변환하며 수치 배열을 SVG/canvas로 표시한다.
 
@@ -25,14 +25,14 @@ Python 함수 반환 dict이며 별도의 HTTP 전송은 없다. `ai_model/src/i
   "prediction": {
     "label": "wasp",
     "confidence": 0.968,
-    "probabilities": {"wasp": 0.968, "bee": 0.021, "other": 0.011}
+    "probabilities": {"non_wasp": 0.032, "wasp": 0.968}
   },
   "meta": {"modelName": "선정된 모델명"}
 }
 ```
 
-최종 모델 선정 후 서버 `predictor.py`에서 모델을 시작 시 한 번 로드하고 위 함수를 호출하도록
-교체한다. 모델을 요청마다 다시 로드하지 않는다. 클래스 순서는 모델 내부에서 정리한다.
+서버 `predictor.py`는 모델을 시작 시 한 번 로드하며 요청마다 다시 로드하지 않는다.
+사용 모델은 서버 `config.py`의 `AI_MODEL_NAME`에서 변경한다.
 학습용 노트북은 실험 기록으로 유지하며 서버 계약의 기준이 아니다.
 
 ## 서버 → 앱
@@ -43,14 +43,14 @@ Python 함수 반환 dict이며 별도의 HTTP 전송은 없다. `ai_model/src/i
 | audio.fileName | 원본 업로드 이름 |
 | audio.sampleRate | 분석 샘플링 주파수 24000 Hz |
 | audio.duration | 패딩/절단 후 분석 창 길이 2초. 원본 파일 길이가 아님 |
-| prediction.label | wasp / bee / other |
+| prediction.label | non_wasp / wasp |
 | prediction.confidence, probabilities | 0~1. 앱 표시 시에만 100을 곱함 |
 | waveform.time, amplitude | 같은 길이의 초/정규화 진폭 배열 |
 | fft.frequency, magnitudeDb | 같은 길이의 Hz/dB 배열. 전체 FFT 최대 크기 기준 상대 dB |
 | spectrogram.time, frequency, db | 초/Hz/[주파수][시간] dB 행렬 |
 | mfcc.time, coefficients | 초/[계수][시간] 행렬. MFCC 값은 dB로 표시하지 않음 |
 | meta.source | user_test / auto_detection |
-| meta.modelName | 현재 mock-placeholder. 앱에서 임시 예측임을 표시 |
+| meta.modelName | 서버 설정에서 선택한 실제 모델 이름 |
 | meta.timestamp | 시간대가 포함된 ISO 8601 시각 |
 
 파형은 1500점, FFT는 1024점, Mel은 128×96, MFCC는 20×96으로 축소한다.
@@ -71,6 +71,6 @@ Mel/표시용 MFCC는 n_fft=1024, hop_length=256을 사용한다. ML 학습 특�
 
 개발 의존성은 `ai_server/requirements-dev.txt`에 기록했다.
 `.venv/Scripts/python.exe -m unittest discover -s ai_server/tests -v`는 실제 WAV 디코딩,
-FastAPI 응답 직렬화, 3개 클래스의 앱 변환, 그래프 차원, 오류 처리, 운영 상태 불변을 확인한다.
-임시 업로드 저장만 메모리로 대체하며 최종 학습 모델 정확도나 실제 Android 네트워크는 검증하지 않는다.
+FastAPI 응답 직렬화, 실제 이진분류 모델 연결, 그래프 차원, 오류 처리, 운영 상태 불변을 확인한다.
+임시 업로드 저장만 메모리로 대체하며 모델 정확도나 실제 Android 네트워크는 검증하지 않는다.
 앱 빌드는 `android-app`에서 `npm run build`로 확인한다.

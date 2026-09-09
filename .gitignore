@@ -56,6 +56,12 @@ models/
 *.onnx
 *.tflite
 
+# Track only deployable model files in ai_model/models.
+!/ai_model/models/
+/ai_model/models/*
+!/ai_model/models/*.keras
+!/ai_model/models/*.pkl
+
 # ---------- Node / React / Vite ----------
 node_modules/
 dist/

@@ -15,7 +15,7 @@ def main():
 
     parser = argparse.ArgumentParser(description='2초 구간의 말벌 포함 여부 이진분류')
     parser.add_argument('audio_path', help='분석할 음원 경로')
-    parser.add_argument('--model', default='MobileNetV2',
+    parser.add_argument('--model', default='CRNN',
                         choices=['CNN', 'MobileNetV2', 'CRNN', 'RandomForest', 'LightGBM', 'XGBoost'])
     parser.add_argument('--ensemble', action='store_true', help='6개 모델 확률 평균')
     parser.add_argument('--threshold', type=float, default=WASP_THRESHOLD)

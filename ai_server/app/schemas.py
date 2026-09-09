@@ -3,16 +3,15 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-ClassName = Literal["wasp", "bee", "other"]
+ClassName = Literal["non_wasp", "wasp"]
 SourceName = Literal["user_test", "auto_detection"]
 DoorState = Literal["OPEN", "CLOSED"]
 SystemState = Literal["NORMAL", "DANGER"]
 
 
 class Probabilities(BaseModel):
+    non_wasp: float = Field(ge=0, le=1)
     wasp: float = Field(ge=0, le=1)
-    bee: float = Field(ge=0, le=1)
-    other: float = Field(ge=0, le=1)
 
 
 class AudioInfo(BaseModel):

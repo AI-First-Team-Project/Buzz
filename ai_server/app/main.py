@@ -5,8 +5,8 @@ from .routers import analysis, health, monitoring
 
 app = FastAPI(
     title="Buzz AI Sound Detection API",
-    description="말벌/꿀벌/Other 사운드 분석 및 Buzz 앱 연동 API",
-    version="0.2.0",
+    description="말벌 포함 여부 이진분류 및 Buzz 앱 연동 API",
+    version="0.3.0",
 )
 
 # 개발 중 React(Vite), Android WebView/Capacitor 연동을 위해 허용.

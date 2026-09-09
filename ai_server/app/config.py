@@ -1,8 +1,14 @@
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BASE_DIR.parent
 UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+# FastAPI에서 사용할 ai_model 모델. 다른 종류로 바꾼 뒤 서버를 재시작한다.
+AI_MODEL_NAME = "CRNN"
+AI_MODEL_DIR = PROJECT_ROOT / "ai_model" / "models"
+AI_MODEL_THRESHOLD = 0.5
 
 # ai_model/src/config.py의 학습/추론 전처리 기준과 동일하게 유지한다.
 SAMPLE_RATE = 24_000
