@@ -13,13 +13,14 @@ from ..config import (
     N_MFCC,
     SAMPLE_RATE,
     SPECTROGRAM_TIME_BINS,
+    TARGET_DB,
     WAVEFORM_POINTS,
 )
 from ..schemas import FFTData, MFCCData, SpectrogramData, WaveformData
 
 
 def load_audio(audio_path: Path) -> tuple[np.ndarray, int]:
-    """Load one model input window using the project-wide 2 sec / 48 kHz rule."""
+    """Load 2 sec / 24 kHz mono audio, normalize RMS, then zero-pad."""
     y, sr = librosa.load(
         audio_path,
         sr=SAMPLE_RATE,
@@ -30,10 +31,16 @@ def load_audio(audio_path: Path) -> tuple[np.ndarray, int]:
         raise ValueError("오디오 데이터가 비어 있습니다.")
 
     target_len = int(SAMPLE_RATE * DURATION_SEC)
+    y = y[:target_len]
+
+    # Match the model: normalize before padding, and preserve silence.
+    rms = np.sqrt(np.mean(y ** 2))
+    if rms >= 1e-8:
+        target_rms = 10 ** (TARGET_DB / 20)
+        y = np.clip(y * (target_rms / rms), -1.0, 1.0)
+
     if len(y) < target_len:
         y = np.pad(y, (0, target_len - len(y)))
-    elif len(y) > target_len:
-        y = y[:target_len]
 
     return y.astype(np.float32), sr
 
@@ -65,8 +72,11 @@ def create_analysis_data(
     """
     y, sr = load_audio(audio_path)
 
-    # Waveform: 96,000 raw samples -> about 1,500 points for UI rendering.
-    waveform = WaveformData(amplitude=_round_list(_sample_1d(y, WAVEFORM_POINTS)))
+    # Waveform: 48,000 raw samples -> about 1,500 points for UI rendering.
+    waveform = WaveformData(
+        time=_round_list(_sample_1d(np.arange(len(y)) / sr, WAVEFORM_POINTS)),
+        amplitude=_round_list(_sample_1d(y, WAVEFORM_POINTS)),
+    )
 
     # FFT: convert magnitude to dB, then reduce points for transport/rendering.
     fft_values = np.fft.rfft(y)

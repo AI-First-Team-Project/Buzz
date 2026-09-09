@@ -7,7 +7,8 @@ analyze_audio()
 import time
 import numpy as np
 
-from .config import CLASSES, SR, DURATION
+from .config import CLASSES, SR, DURATION, WASP_THRESHOLD
+from .binary_classification import make_prediction_result, ordered_ml_probabilities
 
 from .audio_preprocessing import (
     load_audio_file,
@@ -22,18 +23,8 @@ from .feature_extraction import extract_audio_features_from_audio
 from .visualization import create_audio_visualization_data
 
 '''
-모델 확률값을 공통 결과 형식으로 변환
+딥러닝 모델별 입력 생성 및 공통 이진분류 판정
 '''
-def make_prediction_result(probs):
-    probs = np.asarray(probs, dtype = np.float32)
-    pred_index = int(np.argmax(probs))
-
-    return {
-        'prediction': CLASSES[pred_index],
-        'confidence': float(probs[pred_index]),
-        'probabilities': probs
-    }
-
 def predict_with_cnn(y, sr, model):
     mel = create_mel_spectrogram_from_audio(y, sr)
     model_input = prepare_cnn_dataset(np.array([mel], dtype = np.float32))
@@ -57,13 +48,7 @@ def predict_with_crnn(y, sr, model):
 
 def predict_with_ml_model(y, sr, model):
     features = (extract_audio_features_from_audio(y, sr).reshape(1, -1))
-    raw_probs = model.predict_proba(features)[0]
-
-    # 클래스 순서 안정적으로 맞추기
-    probs = np.zeros(len(CLASSES), dtype = np.float32)
-
-    for class_index, probability in zip(model.classes_, raw_probs):
-        probs[int(class_index)] = float(probability)
+    probs = ordered_ml_probabilities(model, features)[0]
 
     return make_prediction_result(probs)
 
@@ -116,13 +101,14 @@ inference_type:
 model_name:
 - single 일 때 사용할 모델 이름
 '''
-def analyze_audio(audio_path, models, inference_type, model_name = None):
+def analyze_audio(audio_path, models, inference_type, model_name = None,
+                  threshold = WASP_THRESHOLD, offset = 0.0):
     total_start = time.perf_counter()
 
     start = time.perf_counter()
 
     # 오디오 1회 로드
-    y, sr = load_audio_file(audio_path, sr = SR, duration = DURATION)
+    y, sr = load_audio_file(audio_path, sr = SR, duration = DURATION, offset = offset)
 
     audio_time = time.perf_counter() - start
 
@@ -148,10 +134,11 @@ def analyze_audio(audio_path, models, inference_type, model_name = None):
     else:
         raise ValueError(f'지원하지 않는 추론 방식입니다: {inference_type}')
 
+    prediction_result = make_prediction_result(prediction_result['probabilities'], threshold)
     inference_time = time.perf_counter() - start
 
     # =========================
-    # UI Visualization
+    # UI Visualization (로컬 실험용; 서버는 공통 전처리 후 그래프를 생성한다.)
     # =========================
 
     start = time.perf_counter()
@@ -172,10 +159,14 @@ def analyze_audio(audio_path, models, inference_type, model_name = None):
     total_time = time.perf_counter() - total_start
 
     return {
-        'model': used_model,
-        'prediction': prediction_result['prediction'],
-        'confidence': prediction_result['confidence'],
-        'probabilities': probabilities,
+        # 모델 전용 이진분류 응답. 서버/앱의 기존 3분류 스키마는 다음 단계에서 변경한다.
+        'prediction': {
+            'label': prediction_result['prediction'],
+            'confidence': prediction_result['confidence'],
+            'probabilities': probabilities,
+        },
+        'meta': {'modelName': used_model, 'waspThreshold': threshold,
+                 'offset': offset, 'duration': DURATION},
         'timing': {
             'audio': audio_time,
             'inference': inference_time,

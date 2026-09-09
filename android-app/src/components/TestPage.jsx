@@ -1,6 +1,8 @@
 
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BottomNav from "./BottomNav";
+import AnalysisCharts from "./AnalysisCharts.jsx";
+import { uploadAnalysis } from "../services/analysis.js";
 
 function AnalysisImageModal({ result, onClose }) {
   if (!result) return null;
@@ -46,39 +48,11 @@ function AnalysisImageModal({ result, onClose }) {
           </div>
 
           <p className={`buzz-analysis-conclusion ${result.main === "말벌" ? "danger" : ""}`}>
-            현재는 데모용 이미지가 표시됩니다. 실제 연동 시에는 Python AI 서버가 생성한 Waveplot / FFT / Mel-Spectrogram / MFCC 이미지를 그대로 받아 보여주면 됩니다.
+            {result.isMock ? "예측은 임시 결과입니다. 그래프는 업로드한 음원을 실제 분석한 결과입니다." : "업로드한 음원의 분석 결과입니다."}
           </p>
         </section>
 
-        <section className="buzz-card buzz-tech-detail">
-          <div className="buzz-tech-block buzz-wave-block">
-            <div className="buzz-tech-title">
-              <div><span>1. Waveplot</span><small>Python 서버에서 생성한 파형 이미지</small></div>
-            </div>
-            <img className="buzz-analysis-server-image" src={result.images.waveplot} alt="Waveplot" />
-          </div>
-
-          <div className="buzz-tech-block">
-            <div className="buzz-tech-title">
-              <div><span>2. FFT Spectrum</span><small>Python 서버에서 생성한 FFT 이미지</small></div>
-            </div>
-            <img className="buzz-analysis-server-image" src={result.images.fft} alt="FFT Spectrum" />
-          </div>
-
-          <div className="buzz-tech-block buzz-tech-main">
-            <div className="buzz-tech-title">
-              <div><span>3. Mel-Spectrogram</span><small>Python 서버에서 생성한 Mel-Spectrogram 이미지</small></div>
-            </div>
-            <img className="buzz-analysis-server-image" src={result.images.mel} alt="Mel-Spectrogram" />
-          </div>
-
-          <div className="buzz-tech-block buzz-mfcc-compact">
-            <div className="buzz-tech-title">
-              <div><span>4. MFCC</span><small>Python 서버에서 생성한 MFCC 이미지</small></div>
-            </div>
-            <img className="buzz-analysis-server-image" src={result.images.mfcc} alt="MFCC" />
-          </div>
-        </section>
+        <AnalysisCharts data={result.raw} />
       </div>
     </div>
   );
@@ -89,40 +63,28 @@ export default function TestPage({ setPage }) {
   const [result, setResult] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const nowTime = useMemo(() => new Date().toLocaleTimeString("ko-KR", {
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
-  }), [result]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const request = useRef(null);
+  useEffect(() => () => request.current?.abort(), []);
 
-  const analyze = () => {
-    if (!file) return;
-    const name = file.name.toLowerCase();
-    const hornet = /hornet|wasp|vespa|말벌/.test(name);
-
-    const computed = hornet
-      ? {
-          main: "말벌",
-          confidence: 96.8,
-          rows: [["말벌", 96.8], ["꿀벌", 2.1], ["Other", 1.1]],
-        }
-      : {
-          main: "꿀벌",
-          confidence: 93.4,
-          rows: [["꿀벌", 93.4], ["말벌", 3.2], ["Other", 3.4]],
-        };
-
-    setResult({
-      ...computed,
-      fileName: file.name,
-      duration: hornet ? "15.0초" : "12.0초",
-      analyzedAt: nowTime,
-      images: {
-        waveplot: "/mock-analysis/waveplot.png",
-        fft: "/mock-analysis/fft.png",
-        mel: "/mock-analysis/mel.png",
-        mfcc: "/mock-analysis/mfcc.png",
-      },
-    });
-    setDetailOpen(false)
+  const analyze = async () => {
+    if (!file || loading) return;
+    const controller = new AbortController();
+    request.current = controller;
+    setLoading(true);
+    setError("");
+    setResult(null);
+    setDetailOpen(false);
+    try {
+      // 서버 계약을 화면 데이터로 변환한다. 테스트 응답으로 운영 상태를 변경하지 않는다.
+      const next = await uploadAnalysis(file, controller.signal);
+      if (!controller.signal.aborted) setResult(next);
+    } catch (error) {
+      if (!controller.signal.aborted) setError(error.message || "서버에 연결할 수 없습니다.");
+    } finally {
+      if (!controller.signal.aborted) setLoading(false);
+    }
   };
 
   return (
@@ -145,17 +107,20 @@ export default function TestPage({ setPage }) {
             <small>MP3 / WAV</small>
             <input
               type="file"
+              disabled={loading}
               accept=".mp3,.wav,audio/*"
               onChange={(e) => {
                 setFile(e.target.files?.[0] ?? null);
+                setError("");
                 setResult(null);
                 setDetailOpen(false);
               }}
             />
           </label>
-          <button className="buzz-primary-btn" disabled={!file} onClick={analyze}>분석 시작</button>
+          <button className="buzz-primary-btn" disabled={!file || loading} onClick={analyze}>{loading ? "분석 중…" : "분석 시작"}</button>
         </section>
 
+        {error && <p role="alert">{error}</p>}
         {result && (
           <section className="buzz-card">
             <div className="buzz-card-head">
@@ -180,7 +145,7 @@ export default function TestPage({ setPage }) {
             </div>
 
             <p className="buzz-door-note mt-4">
-              ※ 실제 연동 시에는 Python AI 서버에서 분석 이미지 URL을 함께 내려주고, 이 화면에서 그대로 표시하면 됩니다.
+              {result.isMock ? "예측: 임시 결과 · 그래프: 실제 음원 분석" : `사용 모델: ${result.raw.meta.modelName}`}
             </p>
           </section>
         )}

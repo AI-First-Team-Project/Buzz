@@ -1,15 +1,18 @@
 # 🐝 Buzz FastAPI Server
 
+모델 → 서버 → 앱의 현재 필드명, 단위, 책임 분담과 실행 방법은
+[음원 분석 데이터 계약](../docs/analysis-contract.md)을 참고하세요.
+
 Buzz의 Python 백엔드입니다.
 
-최종 아키텍처에서는 Kafka를 사용하지 않고 **FastAPI가 자동 감지 및 사용자 테스트 음향 입력을 직접 수신**합니다. 이후 2초·48kHz 기준 전처리, AI 추론, 음향 분석 수치 JSON 생성, 사업장 상태 갱신을 담당합니다.
+최종 아키텍처에서는 Kafka를 사용하지 않고 **FastAPI가 자동 감지 및 사용자 테스트 음향 입력을 직접 수신**합니다. 이후 2초·24kHz 기준 전처리, AI 추론, 음향 분석 수치 JSON 생성, 사업장 상태 갱신을 담당합니다.
 
 ## 역할
 
 ```text
 음향 입력
 → FastAPI
-→ 2초 / 48kHz 전처리
+→ 2초 / 24kHz 전처리
 → Best Model 추론
 → wasp / bee / other
 → 분석 수치 JSON
@@ -17,6 +20,10 @@ Buzz의 Python 백엔드입니다.
 ```
 
 ## 실행
+
+전처리는 모델과 동일하게 24,000Hz, 2초, mono, RMS -20dB 정규화 후 zero padding을 적용합니다.
+Mel-Spectrogram과 표시용 MFCC는 `n_fft=1024`, `hop_length=256`을 사용하며 Mel 필터 수는 128입니다.
+별도 FFT 그래프는 2초 파형 전체에 FFT를 적용합니다. 학습된 ML 모델의 특징 추출 설정은 변경하지 않습니다.
 
 ```bash
 cd ai_server

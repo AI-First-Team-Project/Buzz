@@ -9,7 +9,7 @@
 ```text
 음향 입력
 → FastAPI
-→ 2초 / 48kHz 전처리
+→ 2초 / 24kHz 전처리
 → Best Model
 → wasp / bee / other 판정
 → Android
@@ -23,7 +23,7 @@
 | 개발 기간 | 2026.08.28 ~ 2026.09.11 |
 | 발표일 | 2026.09.15 |
 | 팀 인원 | 4명 |
-| AI 입력 기준 | 2초 / 48kHz |
+| AI 입력 기준 | 2초 / 24kHz |
 | 분류 클래스 | wasp / bee / other |
 | Backend | FastAPI |
 | App | React + Vite + Capacitor + Android Studio |
@@ -40,7 +40,7 @@
                 ↓
              FastAPI
                 ↓
-       2초 / 48kHz 전처리
+       2초 / 24kHz 전처리
                 ↓
            Best Model
                 ↓
@@ -95,7 +95,7 @@ wasp 감지
 ```text
 MP3/WAV
 → FastAPI
-→ 2초 / 48kHz 전처리
+→ 2초 / 24kHz 전처리
 → Best Model
 → 수치 JSON
 → Android 시각화
@@ -130,7 +130,7 @@ MP3/WAV
 
 ```text
 원본 음원
-→ 48kHz 통일
+→ 24kHz 통일
 → 2초 window
 → 정규화
 → 필요 시 Noise Reduction / Band-pass Filter
@@ -216,7 +216,7 @@ Capacitor/Android 빌드는 `android-app/ANDROID-BUILD-GUIDE.md`를 참고합니
 
 ### 구현/구조 정리 완료
 - [x] FastAPI 기본 서버 및 API 구조
-- [x] 2초 / 48kHz 분석 기준
+- [x] 2초 / 24kHz 분석 기준
 - [x] wasp / bee / other 응답 데이터 계약
 - [x] Waveform / FFT / Mel-Spectrogram / MFCC 수치 JSON 구조
 - [x] Kafka 제거 및 FastAPI 직접 입력 구조
