@@ -34,6 +34,7 @@ export const sites = [
 export const detectionEvents = [
     {
         id: 'evt-1',
+        date: '2026-09-09',
         time: '14:31:05',
         siteName: '사업장 3',
         kind: 'danger',
@@ -44,6 +45,7 @@ export const detectionEvents = [
     },
     {
         id: 'evt-2',
+        date: '2026-09-09',
         time: '14:31:02',
         siteName: '사업장 3',
         kind: 'door',
@@ -54,6 +56,7 @@ export const detectionEvents = [
     },
     {
         id: 'evt-3',
+        date: '2026-09-09',
         time: '14:30:25',
         siteName: '사업장 3',
         kind: 'danger',
@@ -64,6 +67,7 @@ export const detectionEvents = [
     },
     {
         id: 'evt-4',
+        date: '2026-09-07',
         time: '11:05:12',
         siteName: '사업장 2',
         kind: 'door',

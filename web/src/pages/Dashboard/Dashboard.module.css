@@ -10,41 +10,113 @@
   cursor: pointer;
 }
 
+.headerActions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.alertBell {
+  position: relative;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.alertBellDanger {
+  border-color: #ffd2ca;
+  background: #fff4f1;
+  color: var(--danger);
+}
+
+.alertBell i {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  padding: 0 4px;
+  border: 2px solid var(--app-bg);
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.bellAlert {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 340px;
+  margin: 0;
+  padding: 11px 14px;
+  border: 1px solid #ffd2ca;
+  border-radius: 12px;
+  background: #fff5f2;
+  color: var(--danger-strong);
+  font-size: 12px;
+}
+
+.bellAlertList {
+  flex: 1;
+  display: grid;
+  gap: 7px;
+}
+
+.bellAlertItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bellAlertItem b {
+  color: var(--danger-strong);
+  font-size: 12px;
+}
+
+.bellAlertItem span {
+  color: var(--text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.bellAlert button {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--danger-strong);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.alertSpacer {
+  height: 64px;
+}
+
 .statRow {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin-bottom: 18px;
-}
-
-.alertBanner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 38px;
-  background: #fff7f5;
-  border-left: 3px solid var(--danger);
-  color: var(--danger-strong);
-  padding: 0 14px;
-  border-radius: 10px;
-  font-size: 12px;
-  margin-bottom: 12px;
-}
-
-.alertLeft {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.alertLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  color: var(--danger-strong);
-  font-weight: 700;
-  font-size: 11px;
-  text-decoration: none;
 }
 
 .kicker {

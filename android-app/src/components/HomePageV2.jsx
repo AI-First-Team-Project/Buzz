@@ -57,6 +57,8 @@ export default function HomePage({ setPage, onOpenSite }) {
   const [lastAnalysisLabel, setLastAnalysisLabel] = useState("방금 전");
   const [doorOpen, setDoorOpen] = useState(true);
   const [toast, setToast] = useState("");
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertsAcknowledged, setAlertsAcknowledged] = useState(false);
   const dangerTimer = useRef(null);
 
   const selectedSite = useMemo(
@@ -64,7 +66,17 @@ export default function HomePage({ setPage, onOpenSite }) {
     [sites, selectedSiteId]
   );
   const danger = selectedSite?.status === "danger";
+  const dangerSites = useMemo(() => sites.filter((site) => site.status === "danger"), [sites]);
   const ai = danger ? classification.danger : classification.normal;
+
+  useEffect(() => {
+    if (dangerSites.length > 0) {
+      setAlertOpen(true);
+      setAlertsAcknowledged(false);
+    } else {
+      setAlertOpen(false);
+    }
+  }, [dangerSites.length]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -169,10 +181,19 @@ export default function HomePage({ setPage, onOpenSite }) {
           </svg>
         </button>
 
-        <button className="buzz-icon-button" aria-label="알림">
+        <button
+          className={`buzz-icon-button buzz-alert-button ${dangerSites.length > 0 ? "danger" : ""}`}
+          aria-label={`위험 알림 ${dangerSites.length}건`}
+          aria-expanded={alertOpen}
+          onClick={() => {
+            setAlertsAcknowledged(true);
+            setAlertOpen((open) => !open);
+          }}
+        >
           <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9a6 6 0 10-12 0v.75a8.967 8.967 0 01-2.312 6.022 23.857 23.857 0 005.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
           </svg>
+          {dangerSites.length > 0 && !alertsAcknowledged && <i>{dangerSites.length}</i>}
         </button>
 
         {siteMenu && (
@@ -190,6 +211,20 @@ export default function HomePage({ setPage, onOpenSite }) {
           </div>
         )}
       </header>
+
+      {dangerSites.length > 0 && alertOpen && (
+        <section className="buzz-mobile-alert" role="alert">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9a6 6 0 10-12 0v.75a8.967 8.967 0 01-2.312 6.022 23.857 23.857 0 005.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
+          </svg>
+          <div>
+            {dangerSites.map((site) => (
+              <p key={site.id}><b>{site.name}</b><span>말벌 {site.confidence ?? 97}% · 출입문 닫힘</span></p>
+            ))}
+          </div>
+          <button onClick={() => { setAlertsAcknowledged(true); setAlertOpen(false); }} aria-label="알림 닫기">×</button>
+        </section>
+      )}
 
       <main className="buzz-commercial-content">
         <div className={`buzz-system-strip ${danger ? "danger" : ""}`}>

@@ -42,7 +42,7 @@ export function MonitoringProvider({ children }) {
         return () => timers.forEach(window.clearTimeout);
     }, [dangerDeadlines, settings]);
     const makeEvent = (site, kind, label) => ({
-        id: crypto.randomUUID(), time: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
+        id: crypto.randomUUID(), date: new Date().toISOString().slice(0, 10), time: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
         siteName: site.name, kind, label, aiClassification: site.aiLabel,
         aiConfidence: site.aiConfidence, doorState: site.door,
     });
