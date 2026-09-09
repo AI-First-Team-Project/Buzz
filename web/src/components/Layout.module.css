@@ -1,0 +1,33 @@
+/* 공통 레이아웃 - 사이드바와 상단바 및 페이지 배치 스타일 */
+.shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 197, 51, 0.12), transparent 28%),
+    radial-gradient(circle at 52% 100%, rgba(255, 238, 196, 0.4), transparent 36%),
+    var(--app-bg);
+}
+
+.content {
+  flex: 1;
+  padding: 28px 32px 40px;
+}
+
+@media (max-height: 900px) and (min-width: 901px) {
+  .content {
+    zoom: 0.9;
+    padding: 20px 26px 24px;
+  }
+
+  :global(body):has([class*='monitorCard']) .content {
+    zoom: 0.94;
+    padding: 22px 28px 26px;
+  }
+}

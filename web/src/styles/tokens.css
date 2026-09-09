@@ -1,0 +1,39 @@
+/* 공통 스타일 - 색상과 크기 등 디자인 변수 스타일 */
+:root {
+  /* surfaces */
+  --sidebar-bg: #102238;
+  --sidebar-bg-active: #1a3554;
+  --app-bg: #fffaf1;
+  --card-bg: #ffffff;
+  --border: #eadfcf;
+  --border-strong: #e1d4bf;
+
+  /* text */
+  --text-primary: #17263a;
+  --text-secondary: #5e6b7a;
+  --text-muted: #8995a1;
+  --text-on-dark: #f8fafc;
+  --text-on-dark-muted: #aab4c0;
+
+  /* brand */
+  --brand-yellow: #ffc533;
+  --brand-yellow-dark: #e39b00;
+  --brand-yellow-tint: #fff0be;
+
+  /* status */
+  --danger: #ef4a49;
+  --danger-tint: #fff0ec;
+  --danger-strong: #d73d3c;
+  --success: #2fb965;
+  --success-tint: #e8f7ed;
+  --info: #3d7ef2;
+  --info-tint: #e8f0fe;
+
+  /* misc */
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 22px;
+  --shadow-card: 0 8px 24px rgba(41, 49, 58, 0.05);
+  --sidebar-width: 224px;
+  --topbar-height: 64px;
+}
