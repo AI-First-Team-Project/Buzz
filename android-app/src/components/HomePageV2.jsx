@@ -1,16 +1,18 @@
-
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import BottomNav from "./BottomNav";
 import { BuzzMark } from "./Logo";
 import {
   getRuntimeSites,
+  getSelectedSiteId,
   getSiteRuntimeStatus,
+  appendRuntimeHistory,
   setSiteRuntimeStatus,
+  setSelectedSiteId as persistSelectedSiteId,
 } from "../types";
 
 const classification = {
-  normal: { primary: "꿀벌", primaryValue: 94, hornet: 4, other: 2 },
-  danger: { primary: "말벌", primaryValue: 97, bee: 2, other: 1 },
+  normal: { primary: "말벌 아님", primaryValue: 94, wasp: 6 },
+  danger: { primary: "말벌", primaryValue: 97, nonWasp: 3 },
 };
 
 function DoorIcon({ open }) {
@@ -48,13 +50,14 @@ export default function HomePage({ setPage, onOpenSite }) {
         : site
     );
   });
-  const [selectedSiteId, setSelectedSiteId] = useState(3);
+  const [selectedSiteId, setSelectedSiteId] = useState(getSelectedSiteId);
   const [siteMenu, setSiteMenu] = useState(false);
   const [now, setNow] = useState(new Date());
   const [lastAnalysisAt, setLastAnalysisAt] = useState(Date.now());
   const [lastAnalysisLabel, setLastAnalysisLabel] = useState("방금 전");
   const [doorOpen, setDoorOpen] = useState(true);
   const [toast, setToast] = useState("");
+  const dangerTimer = useRef(null);
 
   const selectedSite = useMemo(
     () => sites.find((site) => site.id === selectedSiteId) ?? sites[0],
@@ -72,10 +75,10 @@ export default function HomePage({ setPage, onOpenSite }) {
     return () => clearInterval(timer);
   }, [lastAnalysisAt]);
 
-  // UI 데모용 자동 감지 시뮬레이션:
-  // 임시로 랜덤 간격마다 "마지막 분석" 시각을 갱신한다.
-  // 실제 연동 시에는 FastAPI /api/auto/analyze 결과 수신 시
-  // setLastAnalysisAt(Date.now())를 호출하면 된다.
+  // UI 데모용 Kafka 입력 시뮬레이션:
+  // 10~30초 사이의 랜덤 간격으로 새 음원 조각이 도착한 것으로 보고
+  // "마지막 분석" 시각을 갱신한다.
+  // 실제 연동 시에는 FastAPI/Kafka Consumer 결과 수신 시 setLastAnalysisAt(Date.now())를 호출하면 된다.
   useEffect(() => {
     let timer;
     const scheduleNext = () => {
@@ -115,16 +118,25 @@ export default function HomePage({ setPage, onOpenSite }) {
     return () => clearTimeout(t);
   }, [toast]);
 
+  useEffect(() => () => window.clearTimeout(dangerTimer.current), []);
+
   const operateDoor = () => {
     if (doorOpen) {
       setDoorOpen(false);
+      appendRuntimeHistory({ type: "gate", site: selectedSite.name, time: new Date().toLocaleTimeString("ko-KR", { hour12: false }), title: "사용자 문 닫기", result: danger ? "말벌" : "말벌 아님", confidence: danger ? 97 : 95, door: "닫힘", action: "수동 폐쇄", probs: { wasp: danger ? 97 : 5, nonWasp: danger ? 3 : 95 }, flow: ["사용자 제어", "출입문 닫힘", "이력 저장"] });
       setToast("출입문을 닫았습니다.");
       return;
     }
     setDoorOpen(true);
     if (danger) {
-      setToast("말벌 감지 중입니다. 안전을 위해 3초 후 다시 자동으로 닫힙니다.");
-      setTimeout(() => setDoorOpen(false), 3000);
+      setSiteRuntimeStatus(selectedSiteId, "normal");
+      appendRuntimeHistory({ type: "gate", site: selectedSite.name, time: new Date().toLocaleTimeString("ko-KR", { hour12: false }), title: "사용자 문 열기", result: "말벌", confidence: 97, door: "열림", action: "정상 전환", probs: { wasp: 97, nonWasp: 3 }, flow: ["사용자 문 열기", "정상 상태 전환", "1분 뒤 위험 재확인"] });
+      setSites(getRuntimeSites());
+      dangerTimer.current = window.setTimeout(() => {
+        setSiteRuntimeStatus(selectedSiteId, "danger");
+        setSites(getRuntimeSites());
+      }, 60000);
+      setToast("출입문을 열어 정상 상태로 전환되었습니다. 1분 뒤 위험이 다시 표시됩니다.");
     } else {
       setToast("출입문을 열었습니다.");
     }
@@ -132,6 +144,7 @@ export default function HomePage({ setPage, onOpenSite }) {
 
   const switchSite = (id) => {
     setSelectedSiteId(id);
+    persistSelectedSiteId(id);
     setSiteMenu(false);
     setSites(getRuntimeSites());
   };
@@ -146,7 +159,7 @@ export default function HomePage({ setPage, onOpenSite }) {
       <header className="buzz-topbar">
         <div className="buzz-brand">
           <BuzzMark size={30} />
-          <span>_buzz</span>
+          <span>BUZZ</span>
         </div>
 
         <button className="buzz-site-picker" onClick={() => setSiteMenu((v) => !v)}>
@@ -235,14 +248,12 @@ export default function HomePage({ setPage, onOpenSite }) {
           </div>
           <div className="buzz-ai-mini-row">
             {danger ? (
-              <>
-                <span>꿀벌 {ai.bee}%</span>
-                <span>Other {ai.other}%</span>
+            <>
+                <span>말벌 아님 {ai.nonWasp}%</span>
               </>
             ) : (
-              <>
-                <span>말벌 {ai.hornet}%</span>
-                <span>Other {ai.other}%</span>
+            <>
+                <span>말벌 {ai.wasp}%</span>
               </>
             )}
           </div>
@@ -267,7 +278,7 @@ export default function HomePage({ setPage, onOpenSite }) {
 
           <p className="buzz-door-note">
             ⓘ {danger
-              ? "말벌 감지 중에는 사용자가 문을 열어도 안전을 위해 다시 자동으로 닫힙니다."
+              ? "문을 열면 위험 상태가 해제되고 정상 상태로 전환됩니다."
               : "위험 감지 시 출입문이 자동으로 닫힙니다."}
           </p>
         </section>

@@ -1,0 +1,98 @@
+/* 공통 탐색 - 사이드바 메뉴 스타일 */
+.sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--sidebar-bg);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 12px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.sidebar::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 180px;
+  height: 180px;
+  top: -112px;
+  left: -72px;
+  border-radius: 50%;
+  background: rgba(255, 197, 51, 0.12);
+  filter: blur(8px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 24px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.brandMark {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--brand-yellow);
+  color: #1a1305;
+  font-weight: 800;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.brandName {
+  color: var(--text-on-dark);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-on-dark-muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  border-left: 3px solid transparent;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.navItem:hover {
+  background: var(--sidebar-bg-active);
+  color: var(--text-on-dark);
+  transform: translateX(2px);
+}
+
+.navItemActive {
+  background: var(--sidebar-bg-active);
+  color: var(--brand-yellow);
+  border-left-color: var(--brand-yellow);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 6px 16px rgba(5, 17, 30, 0.2);
+}
+
+.footer {
+  color: #55566b;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  padding: 12px 10px 4px;
+}

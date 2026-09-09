@@ -214,8 +214,6 @@
 .buzz-bottom-nav svg{width:19px;height:19px}.buzz-bottom-nav button.active{color:#ffc22c}.buzz-bottom-nav button span{font-weight:800}
 
 .buzz-test-page{padding-top:26px}.buzz-page-heading{margin:0 2px 16px}.buzz-page-heading h1{font-size:25px;font-weight:900;color:#102238;margin:2px 0}
-.buzz-test-banner{display:flex;flex-direction:column;gap:3px;border-radius:17px;background:#eef5ff;border:1px solid #d4e4f6;color:#355f8b;padding:12px 13px;margin-bottom:11px}
-.buzz-test-banner b{font-size:11px}.buzz-test-banner span{font-size:9px;line-height:1.5}
 .buzz-file-drop{height:145px;border:1.5px dashed #dcc68d;border-radius:16px;background:#fffaf0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#8d6c20;cursor:pointer}
 .buzz-file-drop input{display:none}.buzz-file-drop b{font-size:11px}.buzz-file-drop small{font-size:9px;color:#a69a7d}
 .buzz-primary-btn{width:100%;height:43px;border:0;border-radius:13px;background:#ffc22c;color:#302713;font-size:11px;font-weight:900;margin-top:9px}.buzz-primary-btn:disabled{opacity:.42}
@@ -371,7 +369,7 @@
 .buzz-settings-footnote{text-align:center;font-size:7px;line-height:1.5;color:#9aa1a9;margin:8px 12px 0}
 
 
-/* ===== Portfolio analysis + automatic detection refinement ===== */
+/* ===== Portfolio analysis + Kafka-like last analysis refinement ===== */
 .buzz-analysis-site-selector{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   background:#fff;border:1px solid #eadfcf;border-radius:18px;padding:12px 13px;
@@ -413,6 +411,11 @@
 
 /* History now records only meaningful events */
 .buzz-history-filters button{min-width:58px}
+
+.buzz-history-pagination{display:flex;justify-content:center;align-items:center;gap:7px;margin:14px 0 8px}
+.buzz-history-pagination button{min-width:29px;height:29px;border:1px solid #eadfcf;border-radius:9px;background:#fff;color:#607080;font-size:10px;font-weight:800}
+.buzz-history-pagination button.active{background:#ffc22c;border-color:#ffc22c;color:#302713}
+.buzz-history-pagination button:disabled{opacity:.4}
 
 
 /* =========================================================

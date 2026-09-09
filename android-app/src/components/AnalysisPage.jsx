@@ -1,4 +1,3 @@
-
 import { useMemo, useState } from "react";
 import BottomNav from "./BottomNav";
 
@@ -6,24 +5,22 @@ const SITE_DATA = {
   1: {
     name: "사업장 1",
     status: "normal",
-    result: "꿀벌",
+    result: "말벌 아님",
     confidence: 95,
-    probs: { hornet: 2, bee: 95, other: 3 },
+    probs: { wasp: 5, nonWasp: 95 },
     analyzedAt: "15:38:12",
     duration: "18.0초",
-    source: "운영 데이터",
     summary: "꿀벌 음향 패턴이 우세하며 위험 신호는 확인되지 않았습니다.",
     dominantBand: "약 0.8~1.5 kHz",
   },
   2: {
     name: "사업장 2",
     status: "normal",
-    result: "꿀벌",
+    result: "말벌 아님",
     confidence: 92,
-    probs: { hornet: 4, bee: 92, other: 4 },
+    probs: { wasp: 8, nonWasp: 92 },
     analyzedAt: "15:39:04",
     duration: "12.0초",
-    source: "운영 데이터",
     summary: "꿀벌 신호가 안정적으로 분류되었으며 출입문 자동 보호는 작동하지 않았습니다.",
     dominantBand: "약 1.0~1.7 kHz",
   },
@@ -32,10 +29,9 @@ const SITE_DATA = {
     status: "danger",
     result: "말벌",
     confidence: 97,
-    probs: { hornet: 97, bee: 2, other: 1 },
+    probs: { wasp: 97, nonWasp: 3 },
     analyzedAt: "15:40:27",
     duration: "15.0초",
-    source: "운영 데이터",
     summary: "말벌 특징이 강하게 검출되어 위험 상태로 판정되었고 출입문 자동 폐쇄 조건을 충족했습니다.",
     dominantBand: "약 1.5~2.2 kHz",
   },
@@ -74,10 +70,9 @@ export default function AnalysisPage({ setPage }) {
     <div className="buzz-commercial-page">
       <main className="buzz-commercial-content buzz-analysis-page">
         <div className="buzz-page-heading">
-          <p className="buzz-kicker">운영 데이터 · 포트폴리오 상세 분석</p>
           <h1>분석</h1>
           <p className="buzz-page-desc">
-            사업장별 AI 판정과 음향 특징을 비교하고, 필요한 경우 원본 파형과 주파수 분석까지 확인합니다.
+            사업장별 AI 판정과 음향 특징을 비교하고, 상세 신호 분석까지 확인하세요.
           </p>
         </div>
 
@@ -107,15 +102,13 @@ export default function AnalysisPage({ setPage }) {
           </div>
 
           <div className="buzz-analysis-probs">
-            <div><span>말벌</span><b>{data.probs.hornet}%</b></div>
-            <div><span>꿀벌</span><b>{data.probs.bee}%</b></div>
-            <div><span>Other</span><b>{data.probs.other}%</b></div>
+            <div><span>말벌</span><b>{data.probs.wasp}%</b></div>
+            <div><span>말벌 아님</span><b>{data.probs.nonWasp}%</b></div>
           </div>
 
           <div className="buzz-analysis-meta">
             <span>분석 시각 <b>{data.analyzedAt}</b></span>
             <span>음원 길이 <b>{data.duration}</b></span>
-            <span>입력 출처 <b>{data.source}</b></span>
           </div>
 
           <p className={`buzz-analysis-conclusion ${danger ? "danger" : ""}`}>
@@ -135,7 +128,6 @@ export default function AnalysisPage({ setPage }) {
         <section className="buzz-card buzz-analysis-entry">
           <div className="buzz-card-head">
             <div><p className="buzz-kicker">신호 분석</p><h2>상세 결과 분석</h2></div>
-            <span className="buzz-analysis-badge">포트폴리오용 상세</span>
           </div>
           <p className="buzz-page-desc">
             Waveplot → FFT → Mel-Spectrogram → MFCC 순서로 원본 신호부터 AI 입력 특징까지 확인할 수 있습니다.
@@ -221,11 +213,6 @@ export default function AnalysisPage({ setPage }) {
               <p className="buzz-analysis-insight">
                 사람이 직접 해석하기보다는 AI가 말벌·꿀벌·Other의 음색 차이를 비교하는 특징값으로 사용합니다.
               </p>
-            </div>
-
-            <div className="buzz-analysis-method">
-              <h3>분석 흐름</h3>
-              <div><span>10~30초 음원 입력</span><i>→</i><span>Waveplot/FFT</span><i>→</i><span>Mel/MFCC</span><i>→</i><span>AI 3분류</span></div>
             </div>
           </section>
         )}

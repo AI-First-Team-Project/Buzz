@@ -34,9 +34,8 @@ export default function SettingsPage({ setPage }) {
     <div className="buzz-commercial-page">
       <main className="buzz-commercial-content buzz-settings-page">
         <div className="buzz-page-heading">
-          <p className="buzz-kicker">앱 관리</p>
           <h1>설정</h1>
-          <p className="buzz-page-desc">운영에 필요한 알림, 자동 보호 정책, 사업장 정보를 관리합니다.</p>
+          <p className="buzz-page-desc">알림과 자동 보호 정책을 관리하세요.</p>
         </div>
 
         <section className="buzz-settings-section">
@@ -117,7 +116,7 @@ export default function SettingsPage({ setPage }) {
         <section className="buzz-settings-section">
           <div className="buzz-settings-section-title"><span>정보</span></div>
           <div className="buzz-settings-card">
-            <SettingRow title="앱 버전" desc="_buzz" right={<span className="buzz-setting-value">v1.0.0</span>} />
+            <SettingRow title="앱 버전" desc="BUZZ" right={<span className="buzz-setting-value">v1.0.0</span>} />
             <SettingRow title="사용자 가이드" right={<span className="buzz-setting-arrow">›</span>} onClick={() => {}} />
             <SettingRow title="앱 정보" right={<span className="buzz-setting-arrow">›</span>} onClick={() => {}} />
           </div>

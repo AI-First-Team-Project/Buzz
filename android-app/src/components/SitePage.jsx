@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import BottomNav from "./BottomNav";
 import { BuzzMark } from "./Logo";
-import { getRuntimeSites, getSiteRuntimeStatus } from "../types";
+import { getRuntimeSites, getSiteRuntimeStatus, setSelectedSiteId } from "../types";
 
 export default function SitePage({ setPage }) {
   const [sites, setSites] = useState(() => getRuntimeSites());
@@ -19,7 +19,7 @@ export default function SitePage({ setPage }) {
       <header className="buzz-simple-header">
         <div className="buzz-brand">
           <BuzzMark size={30} />
-          <span>_buzz</span>
+          <span>BUZZ</span>
         </div>
         <div>
           <p className="buzz-kicker">전체 현황</p>
@@ -44,7 +44,7 @@ export default function SitePage({ setPage }) {
           {sites.map((site) => {
             const status = getSiteRuntimeStatus(site.id) ?? "normal";
             const danger = status === "danger";
-            const result = danger ? "말벌" : "꿀벌";
+            const result = danger ? "말벌" : "말벌 아님";
             const confidence = danger ? 97 : site.id === 1 ? 95 : site.id === 2 ? 92 : 94;
             const door = danger ? "닫힘" : "열림";
 
@@ -86,7 +86,7 @@ export default function SitePage({ setPage }) {
                 <button
                   className="buzz-site-detail-button"
                   onClick={() => {
-                    // 상세는 홈에서 상단 사업장 선택으로 보는 구조
+                    setSelectedSiteId(site.id);
                     setPage("home");
                   }}
                 >

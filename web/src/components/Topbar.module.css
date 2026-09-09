@@ -1,0 +1,114 @@
+/* 공통 탐색 - 상단 경로와 상태 표시 스타일 */
+.topbar {
+  height: var(--topbar-height);
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.crumbGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.crumbSep {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.crumbCurrent {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.timestamp {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.simulationBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: var(--success-tint);
+  color: var(--success);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.iconButton {
+  position: relative;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: var(--app-bg);
+}
+
+.notifDot {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--danger);
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--sidebar-bg);
+  color: var(--text-on-dark);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 위험 알림 - 알림 목록과 시뮬레이션 제어 */
+.notifDot { top: -3px; right: -5px; width: 17px; height: 17px; color: white; font-size: 10px; display: grid; place-items: center; }
+.panel { position: absolute; right: 28px; top: calc(100% + 8px); width: min(360px, calc(100vw - 40px)); padding: 20px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 28px #0002; }
+.panel p { font-size: 13px; margin: 12px 0; }
+.panel label { display: flex; align-items: center; justify-content: space-between; margin: 14px 0; }
+.panel select, .panel button { padding: 7px 10px; margin: 4px; border: 1px solid var(--border); border-radius: 6px; background: var(--app-bg); color: var(--text-secondary); }
+.panel button { cursor: pointer; }
+.alertItem { display: flex; align-items: center; gap: 8px; color: var(--danger); padding: 14px 0; }
+.liveStatus { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }

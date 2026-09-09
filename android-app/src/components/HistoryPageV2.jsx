@@ -1,7 +1,6 @@
-
 import { useMemo, useState } from "react";
 import BottomNav from "./BottomNav";
-import { getLatestDetection, getSiteRuntimeStatus } from "../types";
+import { getLatestDetection, getRuntimeHistory, getSiteRuntimeStatus } from "../types";
 
 const BASE_HISTORY = [
   {
@@ -74,9 +73,8 @@ function EventDetail({ item, onClose, onAnalysis }) {
         <div className="buzz-detail-section">
           <h3>클래스별 신뢰도</h3>
           {[
-            ["말벌", item.probs.hornet],
-            ["꿀벌", item.probs.bee],
-            ["Other", item.probs.other],
+            ["말벌", item.probs.wasp],
+            ["말벌 아님", item.probs.nonWasp],
           ].map(([label, value]) => (
             <div className="buzz-history-prob" key={label}>
               <span>{label}</span>
@@ -110,32 +108,24 @@ function EventDetail({ item, onClose, onAnalysis }) {
 export default function HistoryPage({ setPage }) {
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
+  const [historyPage, setHistoryPage] = useState(1);
   const latest = getLatestDetection();
   const site3Danger = getSiteRuntimeStatus(3) === "danger";
 
-  const history = useMemo(() => {
-    const rows = [...BASE_HISTORY];
-    if (site3Danger && latest) {
-      rows[0] = {
-        ...rows[0],
-        time: latest.time,
-        confidence: latest.confidence ?? 96,
-        probs: { hornet: latest.confidence ?? 96, bee: 3, other: 1 },
-      };
-    }
-    return rows;
-  }, [site3Danger, latest?.time]);
+  const history = useMemo(() => getRuntimeHistory(), [site3Danger, latest?.time]);
 
   const filtered = history.filter((item) => filter === "all" || item.type === filter);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / 10));
+  const currentPage = Math.min(historyPage, pageCount);
+  const pageItems = filtered.slice((currentPage - 1) * 10, currentPage * 10);
 
   return (
     <div className="buzz-commercial-page">
       <main className="buzz-commercial-content buzz-history-page">
         <div className="buzz-page-heading buzz-history-heading">
           <div>
-            <p className="buzz-kicker">운영 기록</p>
-            <h1>이력</h1>
-            <p className="buzz-page-desc">위험 감지와 출입문 제어처럼 확인이 필요한 이벤트만 기록합니다.</p>
+            <h1>감지 이력</h1>
+            <p className="buzz-page-desc">위험 감지와 출입문 동작을 확인하세요.</p>
           </div>
         </div>
 
@@ -147,14 +137,14 @@ export default function HistoryPage({ setPage }) {
 
         <div className="buzz-history-filters">
           {FILTERS.map(([key, label]) => (
-            <button key={key} className={filter === key ? "active" : ""} onClick={() => setFilter(key)}>
+            <button key={key} className={filter === key ? "active" : ""} onClick={() => { setFilter(key); setHistoryPage(1); }}>
               {label}
             </button>
           ))}
         </div>
 
         <div className="buzz-history-list">
-          {filtered.map((item) => {
+          {pageItems.map((item) => {
             const danger = item.type === "danger";
             const gate = item.type === "gate";
             return (
@@ -181,6 +171,14 @@ export default function HistoryPage({ setPage }) {
               </button>
             );
           })}
+        </div>
+
+        <div className="buzz-history-pagination">
+          <button disabled={currentPage === 1} onClick={() => setHistoryPage((value) => value - 1)}>‹</button>
+          {Array.from({ length: pageCount }, (_, index) => index + 1).slice(0, 10).map((number) => (
+            <button key={number} className={number === currentPage ? "active" : ""} onClick={() => setHistoryPage(number)}>{number}</button>
+          ))}
+          <button disabled={currentPage === pageCount} onClick={() => setHistoryPage((value) => value + 1)}>›</button>
         </div>
 
         <p className="buzz-history-tip">항목을 누르면 당시 AI 판정과 문 동작 흐름을 자세히 볼 수 있습니다.</p>

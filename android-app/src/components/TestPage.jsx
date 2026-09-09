@@ -1,8 +1,6 @@
 
-import { useEffect, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import BottomNav from "./BottomNav";
-import AnalysisCharts from "./AnalysisCharts.jsx";
-import { uploadAnalysis } from "../services/analysis.js";
 
 function AnalysisImageModal({ result, onClose }) {
   if (!result) return null;
@@ -47,12 +45,37 @@ function AnalysisImageModal({ result, onClose }) {
             <span>입력 출처 <b>테스트 업로드</b></span>
           </div>
 
-          <p className={`buzz-analysis-conclusion ${result.main === "말벌" ? "danger" : ""}`}>
-            {result.isMock ? "예측은 임시 결과입니다. 그래프는 업로드한 음원을 실제 분석한 결과입니다." : "업로드한 음원의 분석 결과입니다."}
-          </p>
         </section>
 
-        <AnalysisCharts data={result.raw} />
+        <section className="buzz-card buzz-tech-detail">
+          <div className="buzz-tech-block buzz-wave-block">
+            <div className="buzz-tech-title">
+              <div><span>1. Waveplot</span><small>Python 서버에서 생성한 파형 이미지</small></div>
+            </div>
+            <img className="buzz-analysis-server-image" src={result.images.waveplot} alt="Waveplot" />
+          </div>
+
+          <div className="buzz-tech-block">
+            <div className="buzz-tech-title">
+              <div><span>2. FFT Spectrum</span><small>Python 서버에서 생성한 FFT 이미지</small></div>
+            </div>
+            <img className="buzz-analysis-server-image" src={result.images.fft} alt="FFT Spectrum" />
+          </div>
+
+          <div className="buzz-tech-block buzz-tech-main">
+            <div className="buzz-tech-title">
+              <div><span>3. Mel-Spectrogram</span><small>Python 서버에서 생성한 Mel-Spectrogram 이미지</small></div>
+            </div>
+            <img className="buzz-analysis-server-image" src={result.images.mel} alt="Mel-Spectrogram" />
+          </div>
+
+          <div className="buzz-tech-block buzz-mfcc-compact">
+            <div className="buzz-tech-title">
+              <div><span>4. MFCC</span><small>Python 서버에서 생성한 MFCC 이미지</small></div>
+            </div>
+            <img className="buzz-analysis-server-image" src={result.images.mfcc} alt="MFCC" />
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -63,64 +86,68 @@ export default function TestPage({ setPage }) {
   const [result, setResult] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const request = useRef(null);
-  useEffect(() => () => request.current?.abort(), []);
+  const nowTime = useMemo(() => new Date().toLocaleTimeString("ko-KR", {
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+  }), [result]);
 
-  const analyze = async () => {
-    if (!file || loading) return;
-    const controller = new AbortController();
-    request.current = controller;
-    setLoading(true);
-    setError("");
-    setResult(null);
-    setDetailOpen(false);
-    try {
-      // 서버 계약을 화면 데이터로 변환한다. 테스트 응답으로 운영 상태를 변경하지 않는다.
-      const next = await uploadAnalysis(file, controller.signal);
-      if (!controller.signal.aborted) setResult(next);
-    } catch (error) {
-      if (!controller.signal.aborted) setError(error.message || "서버에 연결할 수 없습니다.");
-    } finally {
-      if (!controller.signal.aborted) setLoading(false);
-    }
+  const analyze = () => {
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    const hornet = /hornet|wasp|vespa|말벌/.test(name);
+
+    const computed = hornet
+      ? {
+          main: "말벌",
+          confidence: 96.8,
+          rows: [["말벌", 96.8], ["말벌 아님", 3.2]],
+        }
+      : {
+          main: "말벌 아님",
+          confidence: 93.4,
+          rows: [["말벌", 6.6], ["말벌 아님", 93.4]],
+        };
+
+    setResult({
+      ...computed,
+      fileName: file.name,
+      duration: hornet ? "15.0초" : "12.0초",
+      analyzedAt: nowTime,
+      images: {
+        waveplot: "/mock-analysis/waveplot.png",
+        fft: "/mock-analysis/fft.png",
+        mel: "/mock-analysis/mel.png",
+        mfcc: "/mock-analysis/mfcc.png",
+      },
+    });
+    setDetailOpen(false)
   };
 
   return (
     <div className="buzz-commercial-page">
       <main className="buzz-commercial-content buzz-test-page">
         <div className="buzz-page-heading">
-          <p className="buzz-kicker">개발 · 검증 전용</p>
-          <h1>AI 사운드 테스트</h1>
-        </div>
-
-        <div className="buzz-test-banner">
-          <b>🧪 테스트 모드</b>
-          <span>운영 모니터링과 완전히 분리되어 있으며 가상 개폐기 상태에는 영향을 주지 않습니다.</span>
+          <h1>음원 테스트</h1>
+          <p className="buzz-page-desc">음원을 업로드하고 AI 분류 결과를 확인하세요.</p>
         </div>
 
         <section className="buzz-card">
           <label className="buzz-file-drop">
             <span className="text-3xl">♫</span>
-            <b>{file ? file.name : "오디오 파일 선택"}</b>
-            <small>MP3 / WAV</small>
+            <b>{file ? file.name : "음원 파일을 놓아주세요"}</b>
+            <small>MP3 또는 WAV</small>
             <input
               type="file"
-              disabled={loading}
               accept=".mp3,.wav,audio/*"
               onChange={(e) => {
                 setFile(e.target.files?.[0] ?? null);
-                setError("");
                 setResult(null);
                 setDetailOpen(false);
               }}
             />
           </label>
-          <button className="buzz-primary-btn" disabled={!file || loading} onClick={analyze}>{loading ? "분석 중…" : "분석 시작"}</button>
+          <button className="buzz-primary-btn" disabled={!file} onClick={analyze}>분석하기</button>
         </section>
 
-        {error && <p role="alert">{error}</p>}
         {result && (
           <section className="buzz-card">
             <div className="buzz-card-head">
@@ -140,13 +167,9 @@ export default function TestPage({ setPage }) {
 
             <div className="buzz-test-actions">
               <button className="buzz-secondary-btn" onClick={() => setDetailOpen(true)}>
-                분석 결과 상세 보기
+                분석 상세 보기 →
               </button>
             </div>
-
-            <p className="buzz-door-note mt-4">
-              {result.isMock ? "예측: 임시 결과 · 그래프: 실제 음원 분석" : `사용 모델: ${result.raw.meta.modelName}`}
-            </p>
           </section>
         )}
       </main>

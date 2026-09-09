@@ -1,0 +1,434 @@
+/* 감지 이력 - 이벤트 조회 및 필터 스타일 */
+.historyPage {
+  padding-top: 14px;
+}
+
+.statRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+  max-width: 640px;
+}
+
+.controlRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filterRow {
+  display: flex;
+  gap: 8px;
+}
+
+.filter,
+.filterActive {
+  border: 1px solid var(--border-strong);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.filterActive {
+  background: var(--brand-yellow);
+  border-color: var(--brand-yellow);
+  color: #241a03;
+}
+
+.rightControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.select {
+  border: 1px solid var(--border-strong);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.dateRange {
+  display: none;
+}
+
+.tableWrap {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.tableWrap th {
+  text-align: left;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tableWrap td {
+  padding: 13px 18px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.tableWrap tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.timeCell {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.eventCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doorClosed {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.doorOpen {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.chevron {
+  color: var(--text-muted);
+}
+
+.tableWrap td:last-child {
+  width: 92px;
+  text-align: right;
+}
+
+.detailButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 34px;
+  min-width: 70px;
+  padding: 0 10px;
+  border: 1px solid var(--brand-yellow);
+  border-radius: var(--radius-sm);
+  background: var(--brand-yellow-tint);
+  color: var(--brand-yellow-dark);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.detailButton span {
+  white-space: nowrap;
+}
+
+.detailButton:hover {
+  background: var(--brand-yellow);
+  color: #241a03;
+}
+
+.tableFooter {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 12px 18px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.pagination {
+  display: flex;
+  grid-column: 2;
+  align-items: center;
+  gap: 6px;
+}
+
+.pagination button {
+  border: 1px solid var(--border-strong);
+  background: var(--card-bg);
+  color: var(--text-muted);
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pageButton,
+.pageNumber {
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pageButton {
+  background: var(--card-bg) !important;
+  color: var(--text-secondary) !important;
+}
+
+.pageNumber {
+  background: var(--brand-yellow);
+  color: #241a03;
+}
+
+.infoBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* 앱 이력 상세 - 모바일 카드 구성과 동일한 모달 */
+.detailOverlay { position: fixed; inset: 0; z-index: 30; background: rgba(10, 14, 26, .48); display: grid; place-items: center; padding: 20px; }
+.detailModal { width: min(520px, 100%); max-height: min(760px, calc(100vh - 40px)); overflow: auto; background: #fffaf1; border: 1px solid #eadfcf; border-radius: 22px; padding: 20px; box-shadow: 0 20px 56px rgba(10, 14, 26, .24); }
+.modalHead { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.modalHead h2 { margin: 2px 0; font-size: 21px; color: #102238; }
+.modalHead span { color: #718091; font-size: 13px; }
+.modalHead button { border: 0; background: #f1ece2; color: #435264; width: 32px; height: 32px; border-radius: 10px; font-size: 22px; cursor: pointer; }
+.modalIntro { color: #718091; font-size: 13px; line-height: 1.55; margin: 18px 0 12px; }
+.modalStatus { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-radius: 16px; }
+.modalDanger { background: #fff0ec; color: #db4542; }
+.modalNormal { background: #eef9f1; color: #27854d; }
+.modalStatus span, .modalGrid span { display: block; color: #718091; font-size: 11px; margin-bottom: 3px; }
+.modalStatus b { font-size: 18px; }
+.modalStatus strong { font-size: 28px; }
+.modalGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+.modalGrid > div { background: white; border: 1px solid #eadfcf; border-radius: 13px; padding: 11px; }
+.modalGrid b { font-size: 13px; color: #17263a; }
+.modalSection { padding-top: 16px; border-top: 1px solid #eadfcf; margin-top: 16px; }
+.modalSection h3 { font-size: 14px; color: #17263a; margin: 0 0 12px; }
+.probability { display: grid; grid-template-columns: 70px 1fr 40px; gap: 9px; align-items: center; font-size: 12px; margin: 10px 0; }
+.probability > div { height: 7px; background: #edf0ef; border-radius: 99px; overflow: hidden; }
+.probability i { display: block; height: 100%; border-radius: inherit; background: #31bd68; }
+.probabilityDanger { background: #ef4a49 !important; }
+.probability b { text-align: right; }
+.eventFlow { display: grid; gap: 10px; }
+.eventFlow > div { display: flex; align-items: center; gap: 10px; color: #435264; font-size: 13px; }
+.eventFlow i { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #e8f7ed; color: #27854d; font-style: normal; font-size: 11px; font-weight: 800; }
+.eventFlow .flowDanger { background: #ffe8e2; color: #d73d3c; }
+
+/* 이벤트 상세 - 당시 분석표 */
+.detailPanel {
+  display: none;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 20px 22px;
+  margin-top: 16px;
+}
+
+.detailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.detailHeadRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kicker {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 2px;
+}
+
+.detailTitle {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.detailLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 4px 0 14px;
+}
+
+.closeButton {
+  border: 1px solid var(--border-strong);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.detailResultRow {
+  display: flex;
+  gap: 24px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+
+.detailResultRow > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.detailResultRow strong {
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.dangerText {
+  color: var(--danger) !important;
+}
+
+.detailProbRow {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.detailProbRow > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.detailProbRow b {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.detailChartGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.techBlock {
+  background: var(--bg-subtle, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+
+.techTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.techTitle small {
+  font-weight: 500;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.waveSvg {
+  width: 100%;
+  height: 80px;
+  background: #10141c;
+  border-radius: var(--radius-sm);
+}
+
+.melSvg {
+  width: 100%;
+  height: 130px;
+  border-radius: var(--radius-sm);
+}
+
+.mfccGrid {
+  display: grid;
+  grid-template-columns: repeat(13, 1fr);
+  gap: 2px;
+  height: 80px;
+}
+
+.mfccGrid span {
+  display: block;
+  background: var(--brand-yellow-dark);
+  border-radius: 1px;
+}
+
+.fftChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 80px;
+  background: #10141c;
+  border-radius: var(--radius-sm);
+  padding: 6px;
+}
+
+.fftBar {
+  flex: 1;
+  background: linear-gradient(180deg, #f5a623, #d98c0f);
+  border-radius: 1px 1px 0 0;
+  display: block;
+}
+
+.axisRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.insight {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 10px 0 0;
+}
+
+.insight b {
+  color: var(--text-primary);
+}
+
+@media (max-width: 720px) {
+  .detailChartGrid {
+    grid-template-columns: 1fr;
+  }
+}
