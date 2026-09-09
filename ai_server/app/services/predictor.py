@@ -1,36 +1,39 @@
-"""AI 추론 어댑터.
-
-현재 팀의 최종 운영 모델이 확정되기 전까지 MOCK 모드로 동작한다.
-최종 모델 선정 후에는 predict_audio() 내부만 교체하면 API 계약은 그대로 유지된다.
-"""
+"""ai_model의 학습 모델을 FastAPI 응답 계약으로 변환하는 추론 어댑터."""
+import sys
 from pathlib import Path
 
-from ..schemas import Probabilities
+from ..config import AI_MODEL_DIR, AI_MODEL_NAME, AI_MODEL_THRESHOLD, PROJECT_ROOT
 
-MODEL_NAME = "mock-placeholder"
+# ai_server/run.py를 ai_server 폴더에서 실행해도 형제 ai_model 패키지를 찾게 한다.
+project_root = str(PROJECT_ROOT)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from ai_model.src.audio_preprocessing import load_audio_file
+from ai_model.src.binary_classification import make_prediction_result
+from ai_model.src.inference import predict_with_single_model
+from ai_model.src.model_loader import load_models
+
+# 요청마다 모델을 다시 읽지 않도록 서버 프로세스 시작 시 한 번만 로드한다.
+_MODELS = load_models([AI_MODEL_NAME], AI_MODEL_DIR)
 
 
 def predict_audio(audio_path: Path) -> dict:
-    """모델과 같은 prediction/meta 계약을 반환한다. 최종 모델은 아직 미선정.
-
-    주의: 지금은 UI/API 통합 테스트용 Mock 예측이다.
-    파일명에 wasp/hornet/vespa/말벌, bee/honeybee/꿀벌, other가 있으면
-    그 클래스가 나오도록 해 팀 데모 개발을 쉽게 했다.
-    """
-    name = audio_path.name.lower()
-
-    if any(key in name for key in ("wasp", "hornet", "vespa", "말벌")):
-        probs = Probabilities(wasp=0.968, bee=0.021, other=0.011)
-        label = "wasp"
-    elif any(key in name for key in ("bee", "honeybee", "꿀벌")):
-        probs = Probabilities(wasp=0.032, bee=0.934, other=0.034)
-        label = "bee"
-    else:
-        probs = Probabilities(wasp=0.08, bee=0.12, other=0.80)
-        label = "other"
-    # 추후 ai_model의 analyze_audio(...) 반환값으로 교체해도 서비스/앱 계약은 유지된다.
+    """업로드 음원을 실제 모델로 분석하고 JSON 직렬화 가능한 예측값을 반환한다."""
+    if hasattr(audio_path, "seek"):
+        audio_path.seek(0)
+    y, sr = load_audio_file(audio_path)
+    result = predict_with_single_model(y, sr, _MODELS, AI_MODEL_NAME)
+    result = make_prediction_result(result["probabilities"], AI_MODEL_THRESHOLD)
+    probabilities = {
+        "non_wasp": float(result["probabilities"][0]),
+        "wasp": float(result["probabilities"][1]),
+    }
     return {
-        "prediction": {"label": label, "confidence": getattr(probs, label),
-                       "probabilities": probs.model_dump()},
-        "meta": {"modelName": MODEL_NAME},
+        "prediction": {
+            "label": result["prediction"],
+            "confidence": result["confidence"],
+            "probabilities": probabilities,
+        },
+        "meta": {"modelName": AI_MODEL_NAME},
     }

@@ -14,7 +14,7 @@ Buzz의 Python 백엔드입니다.
 → FastAPI
 → 2초 / 24kHz 전처리
 → Best Model 추론
-→ wasp / bee / other
+→ non_wasp / wasp
 → 분석 수치 JSON
 → Android
 ```
@@ -78,15 +78,12 @@ Form Data:
 
 현재 FastAPI 기본 구조와 분석 데이터 계약은 구성되어 있습니다.
 
-최종 AI 모델은 아직 선정/연결 전이므로 `app/services/predictor.py`가 mock 또는 임시 predictor 상태라면 다음 순서로 교체합니다.
+현재 `app/config.py`의 `AI_MODEL_NAME`으로 사용할 모델을 지정하며, 서버 시작 시 모델을 한 번 로드합니다.
+같은 종류의 재학습 모델은 `ai_model/models`의 파일을 교체하고 서버를 재시작하면 됩니다.
 
 ```text
-6개 모델 실제 성능 비교
-→ Best Model 선정
-→ 서비스용 Python 모듈화
-→ predictor.py 실제 모델 로딩/추론 코드 적용
-→ FastAPI API 테스트
-→ Android 연동
+음원 업로드 → ai_model 공통 전처리 → 실제 이진분류 모델 추론
+→ FastAPI 응답 생성 → Android/Web 연동
 ```
 
 ## 영상 데이터
