@@ -7,32 +7,43 @@ import { MelSpectrogram } from './MelSpectrogram';
 import { Waveform } from './Waveform';
 import styles from './SoundTest.module.css';
 
-const EXAMPLE_DURATION = '2초';
-const EXAMPLE_RESULT = { wasp: 97, nonWasp: 3 };
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
 export function SoundTest() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [error, setError] = useState('');
   const waveformSeed = useMemo(() => Array.from({ length: 64 }, (_, index) => index), []);
 
   function handleFileChange(event) {
-    setSelectedFile(event.target.files?.[0]?.name ?? null);
-    setAnalysisComplete(false);
+    setSelectedFile(event.target.files?.[0] ?? null);
+    setAnalysisResult(null);
+    setError('');
   }
 
-  function handleAnalyze() {
+  async function handleAnalyze() {
     if (!selectedFile) return;
     setIsAnalyzing(true);
-    window.setTimeout(() => {
+    setError('');
+    try {
+      const body = new FormData();
+      body.append('file', selectedFile);
+      const response = await fetch(`${API_BASE_URL}/api/test/analyze`, { method: 'POST', body });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.detail || `분석 요청 실패 (${response.status})`);
+      setAnalysisResult(data);
+    } catch (requestError) {
+      setAnalysisResult(null);
+      setError(requestError instanceof Error ? requestError.message : '서버에 연결할 수 없습니다.');
+    } finally {
       setIsAnalyzing(false);
-      setAnalysisComplete(true);
-    }, 900);
+    }
   }
 
   return _jsxs('div', { children: [
     _jsx(PageHeader, { title: '음원 테스트', description: '음원을 업로드하고 AI 분류 결과를 확인하세요.' }),
-    _jsxs('div', { className: `${styles.topGrid} ${analysisComplete ? '' : styles.uploadOnly}`, children: [
+    _jsxs('div', { className: `${styles.topGrid} ${analysisResult ? '' : styles.uploadOnly}`, children: [
       _jsxs('section', { className: styles.card, children: [
         _jsx('h2', { className: styles.cardTitle, children: '음원 업로드' }),
         _jsxs('label', { className: styles.dropzone, children: [
@@ -44,17 +55,18 @@ export function SoundTest() {
         ] }),
         selectedFile && _jsxs('div', { className: styles.fileRow, children: [
           _jsx(Waveform, { seed: waveformSeed, className: styles.fileWaveform }),
-          _jsx('span', { className: styles.fileName, children: selectedFile }),
-          _jsx('span', { className: styles.fileDuration, children: EXAMPLE_DURATION }),
-          _jsx('button', { type: 'button', className: styles.fileRemove, onClick: () => { setSelectedFile(null); setAnalysisComplete(false); }, 'aria-label': '파일 제거', children: _jsx(CloseIcon, { size: 14 }) }),
+          _jsx('span', { className: styles.fileName, children: selectedFile.name }),
+          _jsx('span', { className: styles.fileDuration, children: analysisResult ? `${analysisResult.audio.duration.toFixed(1)}초` : '' }),
+          _jsx('button', { type: 'button', className: styles.fileRemove, onClick: () => { setSelectedFile(null); setAnalysisResult(null); setError(''); }, 'aria-label': '파일 제거', children: _jsx(CloseIcon, { size: 14 }) }),
         ] }),
         _jsx('button', { type: 'button', className: styles.analyzeButton, onClick: handleAnalyze, disabled: !selectedFile || isAnalyzing, children: isAnalyzing ? '분석 중…' : '분석하기' }),
       ] }),
-      analysisComplete ? _jsx(AnalysisResult, {}) : _jsx(TestGuide, {}),
+      analysisResult ? _jsx(AnalysisResult, { result: analysisResult }) : _jsx(TestGuide, {}),
     ] }),
-    analysisComplete && _jsxs('div', { className: styles.chartGrid, children: [
-      _jsxs('section', { className: styles.card, children: [_jsx('h2', { className: styles.cardTitle, children: '오디오 파형' }), _jsx(Waveform, { seed: waveformSeed, className: styles.bigChart })] }),
-      _jsxs('section', { className: styles.card, children: [_jsx('h2', { className: styles.cardTitle, children: 'Mel Spectrogram' }), _jsx(MelSpectrogram, { className: styles.bigChart })] }),
+    error && _jsx('p', { className: styles.errorMessage, role: 'alert', children: error }),
+    analysisResult && _jsxs('div', { className: styles.chartGrid, children: [
+      _jsxs('section', { className: styles.card, children: [_jsx('h2', { className: styles.cardTitle, children: '오디오 파형' }), _jsx(Waveform, { values: analysisResult.waveform.amplitude, className: styles.bigChart })] }),
+      _jsxs('section', { className: styles.card, children: [_jsx('h2', { className: styles.cardTitle, children: 'Mel Spectrogram' }), _jsx(MelSpectrogram, { db: analysisResult.spectrogram.db, className: styles.bigChart })] }),
     ] }),
   ] });
 }
@@ -77,12 +89,16 @@ function TestGuide() {
   ] });
 }
 
-function AnalysisResult() {
+function AnalysisResult({ result }) {
+  const wasp = result.prediction.probabilities.wasp * 100;
+  const nonWasp = result.prediction.probabilities.non_wasp * 100;
+  const isWasp = result.prediction.label === 'wasp';
+  const label = isWasp ? '말벌' : '말벌 아님';
   return _jsxs('section', { className: styles.card, children: [
     _jsxs('div', { className: styles.resultHead, children: [_jsx('h2', { className: styles.cardTitle, children: '분석 결과' }), _jsx('span', { className: styles.exampleTag, children: '분석 완료' })] }),
-    _jsxs('div', { className: styles.resultTop, children: [_jsxs('div', { className: styles.resultLead, children: [_jsx('span', { className: styles.resultLeadLabel, children: '말벌' }), _jsxs('span', { className: styles.resultLeadValue, children: [EXAMPLE_RESULT.wasp, '%'] })] }), _jsx('span', { className: styles.dangerTag, children: '위험 탐지' })] }),
-    _jsxs('div', { className: styles.breakdown, children: [_jsx(BreakdownBar, { label: '말벌', value: EXAMPLE_RESULT.wasp, tone: 'danger' }), _jsx(BreakdownBar, { label: '말벌 아님', value: EXAMPLE_RESULT.nonWasp, tone: 'brand' })] }),
-    _jsxs('div', { className: styles.metaRow, children: [_jsxs('span', { children: ['소요 시간 ', EXAMPLE_DURATION] }), _jsxs('span', { children: ['분석 시각 ', new Date().toLocaleString('ko-KR')] })] }),
+    _jsxs('div', { className: styles.resultTop, children: [_jsxs('div', { className: styles.resultLead, children: [_jsx('span', { className: styles.resultLeadLabel, children: label }), _jsxs('span', { className: styles.resultLeadValue, children: [(result.prediction.confidence * 100).toFixed(1), '%'] })] }), _jsx('span', { className: styles.dangerTag, children: isWasp ? '위험 탐지' : '정상' })] }),
+    _jsxs('div', { className: styles.breakdown, children: [_jsx(BreakdownBar, { label: '말벌', value: wasp, tone: 'danger' }), _jsx(BreakdownBar, { label: '정상', value: nonWasp, tone: 'brand' })] }),
+    _jsxs('div', { className: styles.metaRow, children: [_jsxs('span', { children: ['모델 ', result.meta.modelName] }), _jsxs('span', { children: ['분석 시각 ', new Date(result.meta.timestamp).toLocaleString('ko-KR')] })] }),
     _jsx('a', { href: '#detail', className: styles.detailLink, children: '분석 상세 보기 →' }),
   ] });
 }
@@ -91,6 +107,6 @@ function BreakdownBar({ label, value, tone }) {
   return _jsxs('div', { className: styles.breakdownRow, children: [
     _jsx('span', { className: styles.breakdownLabel, children: label }),
     _jsx('div', { className: styles.breakdownTrack, children: _jsx('div', { className: `${styles.breakdownFill} ${styles[tone]}`, style: { width: `${value}%` } }) }),
-    _jsxs('span', { className: styles.breakdownValue, children: [value, '%'] }),
+    _jsxs('span', { className: styles.breakdownValue, children: [value.toFixed(1), '%'] }),
   ] });
 }

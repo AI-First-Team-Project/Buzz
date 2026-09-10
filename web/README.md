@@ -23,7 +23,8 @@ src/
   types/        도메인 타입 정의
 ```
 
-## 상태
+## API 연결 상태
 
-현재는 목 데이터로 동작하는 화면 단계입니다. 실제 API 연동 시
-`src/data/mockData.ts`의 데이터 소스를 백엔드(FastAPI) 호출로 교체하면 됩니다.
+음원 테스트 화면은 `VITE_API_BASE_URL`(기본값 `http://localhost:8000`)의
+`POST /api/test/analyze`를 호출해 실제 모델 결과와 파형/스펙트로그램을 표시합니다.
+대시보드, 사업장, 이력 화면은 아직 `src/data/mockData.ts`의 목 데이터를 사용합니다.

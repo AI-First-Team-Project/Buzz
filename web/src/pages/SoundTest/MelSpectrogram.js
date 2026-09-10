@@ -28,8 +28,15 @@ function heatColor(v) {
     }
     return stops[stops.length - 1][1];
 }
-export function MelSpectrogram({ className }) {
-    const cellW = 100 / COLUMNS;
-    const cellH = 100 / ROWS;
-    return (_jsx("svg", { viewBox: "0 0 100 100", preserveAspectRatio: "none", className: className, "aria-hidden": "true", children: Array.from({ length: COLUMNS }).map((_, col) => Array.from({ length: ROWS }).map((_, row) => (_jsx("rect", { x: col * cellW, y: row * cellH, width: cellW + 0.5, height: cellH + 0.5, fill: heatColor(heatAt(col, row)) }, `${col}-${row}`)))) }));
+export function MelSpectrogram({ db, className }) {
+    const rows = db?.length ? db : Array.from({ length: ROWS }, (_, row) => Array.from({ length: COLUMNS }, (_, col) => heatAt(col, row)));
+    const rowCount = rows.length;
+    const columnCount = rows[0]?.length || 1;
+    const flat = rows.flat();
+    const min = db?.length ? Math.min(...flat) : 0;
+    const max = db?.length ? Math.max(...flat) : 1;
+    const normalize = (value) => (value - min) / Math.max(max - min, Number.EPSILON);
+    const cellW = 100 / columnCount;
+    const cellH = 100 / rowCount;
+    return (_jsx("svg", { viewBox: "0 0 100 100", preserveAspectRatio: "none", className: className, "aria-hidden": "true", children: rows.map((values, row) => values.map((value, col) => (_jsx("rect", { x: col * cellW, y: (rowCount - row - 1) * cellH, width: cellW + 0.5, height: cellH + 0.5, fill: heatColor(db?.length ? normalize(value) : value) }, `${col}-${row}`)))) }));
 }
