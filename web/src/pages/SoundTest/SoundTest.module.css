@@ -265,6 +265,32 @@
   border-radius: 999px;
 }
 
+.normalTag {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--success);
+  background: var(--success-tint);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.endpoint {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.error {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #efb7b4;
+  border-radius: var(--radius-sm);
+  background: var(--danger-tint);
+  color: var(--danger);
+  font-size: 12px;
+}
+
 .breakdown {
   display: flex;
   flex-direction: column;

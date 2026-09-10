@@ -12,6 +12,8 @@ import styles from './History.module.css';
 const KOREAN_LABEL = { wasp: '말벌', 'non-wasp': '말벌 아님' };
 const PAGE_SIZE = 10;
 const PAGE_BUTTON_COUNT = 10;
+const REPORT_END_DATE = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const REPORT_START_DATE = new Date(new Date(`${REPORT_END_DATE}T00:00:00`).getTime() - 6 * 86400000).toISOString().slice(0, 10);
 
 function Probability({ label, value, danger = false }) {
   return _jsxs('div', { className: styles.probability, children: [
@@ -23,7 +25,8 @@ function Probability({ label, value, danger = false }) {
 
 function EventDetailModal({ event, onClose }) {
   const danger = event.kind === 'danger' || event.aiClassification === 'wasp';
-  const nonWasp = 100 - event.aiConfidence;
+  const wasp = event.probabilities?.wasp ?? (event.aiClassification === 'wasp' ? event.aiConfidence : 100 - event.aiConfidence);
+  const nonWasp = event.probabilities?.nonWasp ?? (event.aiClassification === 'wasp' ? 100 - event.aiConfidence : event.aiConfidence);
   const flow = event.kind === 'danger'
     ? ['말벌 위험 감지', '위험 알림 기록', event.doorState === 'closed' ? '개폐기 자동 닫힘' : '운영자 확인 대기']
     : [event.label, `개폐기 ${event.doorState === 'closed' ? '닫힘' : '열림'}`, '이력에 제어 결과 저장'];
@@ -43,7 +46,7 @@ function EventDetailModal({ event, onClose }) {
         _jsxs('div', { children: [_jsx('span', { children: '감지 시각' }), _jsx('b', { children: event.time })] }),
         _jsxs('div', { children: [_jsx('span', { children: '사업장' }), _jsx('b', { children: event.siteName })] }),
       ] }),
-      _jsxs('section', { className: styles.modalSection, children: [_jsx('h3', { children: '이진분류 신뢰도' }), _jsx(Probability, { label: '말벌', value: event.aiClassification === 'wasp' ? event.aiConfidence : nonWasp, danger: true }), _jsx(Probability, { label: '말벌 아님', value: event.aiClassification === 'wasp' ? nonWasp : event.aiConfidence })] }),
+      _jsxs('section', { className: styles.modalSection, children: [_jsx('h3', { children: '이진분류 신뢰도' }), _jsx(Probability, { label: '말벌', value: wasp, danger: true }), _jsx(Probability, { label: '말벌 아님', value: nonWasp })] }),
       _jsxs('section', { className: styles.modalSection, children: [_jsx('h3', { children: '관련 이벤트 흐름' }), _jsx('div', { className: styles.eventFlow, children: flow.map((step, index) => _jsxs('div', { children: [_jsx('i', { className: danger ? styles.flowDanger : '', children: index + 1 }), _jsx('span', { children: step })] }, step)) })] }),
     ] }),
   });
@@ -57,7 +60,7 @@ function HistoryReportModal({ events, siteName, period, setPeriod, startDate, se
   const dailyReports = [];
   for (let day = new Date(`${rangeStart}T00:00:00Z`); day <= new Date(`${rangeEnd}T00:00:00Z`); day.setUTCDate(day.getUTCDate() + 1)) {
     const date = day.toISOString().slice(0, 10);
-    const dayEvents = events.filter((event) => (event.date ?? '2026-09-09') === date);
+    const dayEvents = events.filter((event) => event.date === date);
     const dayDangerCount = dayEvents.filter((event) => event.kind === 'danger').length;
     const dayDoorCount = dayEvents.filter((event) => event.kind === 'door').length;
     dailyReports.push({ date, count: dayEvents.length, dangerCount: dayDangerCount, doorCount: dayDoorCount });
@@ -121,8 +124,8 @@ export function History() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportPeriod, setReportPeriod] = useState('week');
-  const [reportStartDate, setReportStartDate] = useState('2026-09-03');
-  const [reportEndDate, setReportEndDate] = useState('2026-09-09');
+  const [reportStartDate, setReportStartDate] = useState(REPORT_START_DATE);
+  const [reportEndDate, setReportEndDate] = useState(REPORT_END_DATE);
   const siteId = params.get('site') ?? 'all';
   const selectedSiteName = sites.find((site) => site.id === siteId)?.name;
   const detail = detectionEvents.find((event) => event.id === selectedEvent);
@@ -137,7 +140,7 @@ export function History() {
   const dangerCount = detectionEvents.filter((event) => event.kind === 'danger').length;
   const doorCount = detectionEvents.filter((event) => event.kind === 'door').length;
   const reportRange = useMemo(() => {
-    const end = reportPeriod === 'custom' ? reportEndDate : '2026-09-09';
+    const end = reportPeriod === 'custom' ? reportEndDate : REPORT_END_DATE;
     const start = reportPeriod === 'day'
       ? end
       : reportPeriod === 'week'
@@ -148,7 +151,7 @@ export function History() {
   const reportEvents = useMemo(() => {
     const { start, end } = reportRange;
     return filteredEvents.filter((event) => {
-      const eventDate = event.date ?? '2026-09-09';
+      const eventDate = event.date;
       return eventDate >= start && eventDate <= end;
     });
   }, [filteredEvents, reportRange]);

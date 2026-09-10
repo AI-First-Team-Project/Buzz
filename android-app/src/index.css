@@ -227,6 +227,7 @@
   padding:11px 14px;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px
 }
 .buzz-door-action svg{width:19px;height:19px}.buzz-door-action.danger{background:#ef4a49}
+.buzz-door-action:disabled{cursor:wait;opacity:.72}
 .buzz-door-note{font-size:9px;line-height:1.5;color:#75818e;margin:9px 0 0}
 .buzz-wide-link{
   width:100%;height:45px;border:1px solid #eadfcf;background:#fffdf8;border-radius:14px;color:#435264;
@@ -264,6 +265,20 @@
 .buzz-primary-btn{width:100%;height:43px;border:0;border-radius:13px;background:#ffc22c;color:#302713;font-size:11px;font-weight:900;margin-top:9px}.buzz-primary-btn:disabled{opacity:.42}
 .buzz-test-score{font-size:27px;color:#e34a48}.buzz-probability-row{display:grid;grid-template-columns:42px 1fr 48px;gap:8px;align-items:center;font-size:9px}
 .buzz-probability-row>div{height:6px;background:#edf0f1;border-radius:99px;overflow:hidden}.buzz-probability-row i{display:block;height:100%;background:#ffc22c;border-radius:99px}.buzz-probability-row b{text-align:right}
+.buzz-api-endpoint{display:block;margin-top:8px;color:#8c96a1;font-size:8px;overflow-wrap:anywhere}
+.buzz-analysis-error{margin:10px 0 0;padding:10px 11px;border:1px solid #f3b6b3;border-radius:12px;background:#fff0ef;color:#a23b37;font-size:9px;line-height:1.5}
+.buzz-result-model{margin:11px 0 0;color:#8c96a1;font-size:8px;overflow-wrap:anywhere}
+.buzz-api-charts{background:#f8fafc}
+.buzz-api-line-chart,.buzz-api-heatmap{width:100%;height:170px;display:block;border:1px solid #dbe3ea;border-radius:12px;background:#fff}
+.buzz-api-line-chart{overflow:visible}
+.buzz-api-line-chart line{stroke:#cbd5e1;stroke-width:1;stroke-dasharray:5 5}
+.buzz-api-line-chart path{fill:none;stroke-width:2;vector-effect:non-scaling-stroke}
+.buzz-api-heatmap{image-rendering:auto;background:#0b1020}
+.buzz-analysis-page .buzz-api-line-chart{height:190px}
+.buzz-analysis-page .buzz-api-heatmap{height:250px}
+.buzz-wave-chart>.buzz-api-line-chart{width:100%;height:100%}
+.buzz-fft-chart>.buzz-api-line-chart{grid-column:1/-1;grid-row:1;width:100%;height:100%}
+.buzz-mel-visual>.buzz-api-heatmap,.buzz-mfcc-grid>.buzz-api-heatmap{grid-column:1/-1;width:100%;height:100%}
 
 @media (min-width:700px){
   .buzz-commercial-page{min-height:900px;box-shadow:0 0 50px rgba(18,32,48,.14)}
@@ -286,7 +301,7 @@
 .buzz-ai-line .buzz-mascot{transform:scale(.62);transform-origin:left center;margin:-7px -10px -7px -7px}
 .buzz-ai-line b{font-size:21px;font-weight:900;color:#17263a}
 .buzz-ai-line strong{font-size:27px;line-height:1;color:#2fb965;font-weight:900;margin-left:2px}
-.buzz-ai-compact.danger .buzz-ai-line strong{color:#ef4a49}
+.buzz-ai-compact.prediction-danger .buzz-ai-line strong{color:#ef4a49}
 .buzz-ai-mini-row{display:flex;gap:8px;margin-top:8px}
 .buzz-ai-mini-row span{
   background:#faf8f4;border-radius:999px;padding:6px 9px;color:#737d89;font-size:9px;font-weight:700
@@ -334,6 +349,10 @@
 .buzz-week-chart>div{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px}
 .buzz-week-chart span{width:100%;max-width:26px;border-radius:8px 8px 3px 3px;background:linear-gradient(#ffcc51,#ffb71a)}
 .buzz-week-chart small{font-size:8px;color:#8b949f}
+.buzz-week-chart-pending{position:relative;background:repeating-linear-gradient(to top,transparent 0,transparent 34px,#edf0f2 35px);border-radius:12px}
+.buzz-week-chart-pending>div>span{height:3px;width:100%;max-width:26px;background:#d7dde2}
+.buzz-week-chart-pending>p{position:absolute;left:50%;top:43%;transform:translate(-50%,-50%);width:100%;margin:0;text-align:center;color:#89939e;font-size:9px}
+.buzz-history-pending-badge{padding:4px 7px;border-radius:999px;background:#f4f5f6;color:#89939e;font-size:8px;font-weight:800}
 
 .buzz-tech-detail{display:flex;flex-direction:column;gap:16px}
 .buzz-tech-block{border-top:1px solid #f0ebe3;padding-top:12px}.buzz-tech-block:first-child{border-top:0;padding-top:0}
@@ -1300,4 +1319,21 @@ button svg{
     margin-left:auto;
     margin-right:auto;
   }
+}
+
+.buzz-analysis-page .buzz-spectrogram-large .buzz-mel-visual,
+.buzz-analysis-page .buzz-mfcc-grid {
+  height: 230px;
+}
+
+.buzz-analysis-page .buzz-mfcc-grid {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+}
+
+.buzz-analysis-page .buzz-mel-visual > .buzz-api-heatmap,
+.buzz-analysis-page .buzz-mfcc-grid > .buzz-api-heatmap {
+  width: 100%;
+  height: 100%;
 }

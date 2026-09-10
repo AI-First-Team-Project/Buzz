@@ -7,10 +7,15 @@ import { PageHeader } from '../../components/PageHeader';
 import { DoorIcon, SearchIcon } from '../../components/Icons';
 import { useMonitoring } from '../../data/MonitoringContext';
 import styles from './Worksites.module.css';
-const KOREAN_LABEL = { wasp: '말벌', 'non-wasp': '말벌 아님' };
+const KOREAN_LABEL = { wasp: '말벌 확률' };
 export function Worksites() {
     const navigate = useNavigate();
-    const { sites } = useMonitoring();
+    const { sites: monitoredSites } = useMonitoring();
+    const sites = useMemo(() => monitoredSites.map((site) => ({
+        ...site,
+        aiLabel: 'wasp',
+        aiConfidence: site.probabilities?.wasp ?? 0,
+    })), [monitoredSites]);
     const [filter, setFilter] = useState('all');
     const [query, setQuery] = useState('');
     const normalCount = sites.filter((s) => s.status === 'normal').length;

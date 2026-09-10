@@ -265,21 +265,25 @@
 .confidenceValue {
   font-size: 26px;
   font-weight: 800;
-  color: var(--danger);
+  color: var(--success);
 }
 
 .confidenceBarTrack {
   height: 8px;
   border-radius: 999px;
-  background: var(--danger-tint);
+  background: var(--success-tint);
   overflow: hidden;
 }
 
 .confidenceBarFill {
   height: 100%;
-  background: var(--danger);
+  background: var(--success);
   border-radius: 999px;
 }
+
+.currentPredictionDanger .confidenceValue { color: var(--danger); }
+.currentPredictionDanger .confidenceBarTrack { background: var(--danger-tint); }
+.currentPredictionDanger .confidenceBarFill { background: var(--danger); }
 
 .doorControl { border-top: 1px solid var(--border); padding-top: 18px; }
 .doorState { display: flex; align-items: center; gap: 12px; }
@@ -292,7 +296,9 @@
 .doorActionDanger { background: #ef4a49; }
 .doorAction:hover { filter: brightness(1.1); }
 .doorAction:focus-visible { outline: 3px solid var(--brand-yellow); outline-offset: 3px; }
-.doorNote { font-size: 12px; line-height: 1.6; color: var(--text-muted); margin: 10px 0 0; }
+.doorNote { font-size: 0; line-height: 1.6; color: var(--text-muted); margin: 10px 0 0; }
+.doorNote::after { content: '수동 제어 결과는 서버에 저장됩니다. 위험 감지 시 출입문이 자동으로 닫힙니다.'; font-size: 12px; }
+.monitorInfo:has([class*="danger"]) .doorNote::after { content: '문을 열어도 위험 상태는 유지됩니다. 정상 복귀는 3회 연속 미탐지 후 처리됩니다.'; }
 
 .sectionTitle {
   font-size: 14px;

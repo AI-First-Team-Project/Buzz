@@ -9,26 +9,36 @@ import { StatCard } from '../../components/StatCard';
 import { BellIcon, CheckCircleIcon, DoorIcon, HistoryIcon, LockIcon, SiteIcon, WarningIcon, } from '../../components/Icons';
 import { useMonitoring } from '../../data/MonitoringContext';
 import styles from './Dashboard.module.css';
-const KOREAN_LABEL = { wasp: '말벌', 'non-wasp': '말벌 아님' };
+const KOREAN_LABEL = { wasp: '말벌 확률', 'non-wasp': '안전 확률' };
 export function Dashboard() {
     const { sites, detectionEvents, setDoor } = useMonitoring();
     const [searchParams, setSearchParams] = useSearchParams();
     const selectedId = searchParams.get('site') ?? 'all';
-    const visibleSites = sites;
-    const selectedSites = selectedId === 'all' ? sites : sites.filter((s) => s.id === selectedId);
-    const [defaultMonitorId] = useState(() => sites.find((s) => s.status === 'danger')?.id ?? sites[0]?.id);
-    const selectedSite = selectedSites.find((s) => s.id === defaultMonitorId) ?? selectedSites[0];
+    const visibleSites = sites.map((site) => ({
+        ...site,
+        predictionLabel: site.aiLabel,
+        aiLabel: 'wasp',
+        aiConfidence: site.probabilities?.wasp ?? 0,
+    }));
+    const selectedSites = selectedId === 'all' ? visibleSites : visibleSites.filter((site) => site.id === selectedId);
+    const selectedSite = selectedId === 'all'
+        ? visibleSites.find((site) => site.status === 'danger') ?? visibleSites[0]
+        : selectedSites[0];
+    const lastAnalysisLabel = selectedSite?.lastAnalyzedAt ?? '분석 대기 중';
     const doorState = selectedSite?.door ?? 'closed';
-    const setDoorState = (door) => selectedSite && setDoor(selectedSite.id, door);
-    const normalCount = selectedSites.filter((s) => s.status === 'normal').length;
-    const dangerCount = selectedSites.filter((s) => s.status === 'danger').length;
-    // 앱(HomePage)과 동일한 "마지막 분석 N초 전" 표시를 위한 시뮬레이션 타이머.
-    // 실제 연동 시에는 FastAPI/Kafka Consumer 결과 수신 시 setLastAnalysisAt(Date.now())를 호출하면 됨.
-    const [lastAnalysisAt, setLastAnalysisAt] = useState(Date.now());
-    const [lastAnalysisLabel, setLastAnalysisLabel] = useState('방금 전');
+    const [doorControlPending, setDoorControlPending] = useState(false);
+    const setDoorState = async (door) => {
+        if (!selectedSite || doorControlPending)
+            return;
+        setDoorControlPending(true);
+        await setDoor(selectedSite.id, door);
+        setDoorControlPending(false);
+    };
+    const normalCount = visibleSites.filter((site) => site.status === 'normal').length;
+    const dangerCount = visibleSites.filter((site) => site.status === 'danger').length;
     const [alertOpen, setAlertOpen] = useState(true);
     const [alertsAcknowledged, setAlertsAcknowledged] = useState(false);
-    const activeDangerSites = sites.filter((site) => site.status === 'danger');
+    const activeDangerSites = visibleSites.filter((site) => site.status === 'danger');
     useEffect(() => {
         const cards = Array.from(document.querySelectorAll(`.${styles.siteCard}`));
         const cleanups = cards.map((card, index) => {
@@ -55,29 +65,16 @@ export function Dashboard() {
         return () => cleanups.forEach((cleanup) => cleanup());
     }, [visibleSites, setSearchParams]);
     useEffect(() => {
-        const timer = window.setInterval(() => {
-            const diff = Math.max(0, Math.floor((Date.now() - lastAnalysisAt) / 1000));
-            setLastAnalysisLabel(diff < 2 ? '방금 전' : `${diff}초 전`);
-        }, 1000);
-        return () => window.clearInterval(timer);
-    }, [lastAnalysisAt]);
-    useEffect(() => {
-        let timer;
-        const scheduleNext = () => {
-            const delay = 10000 + Math.floor(Math.random() * 20001);
-            timer = window.setTimeout(() => {
-                setLastAnalysisAt(Date.now());
-                scheduleNext();
-            }, delay);
-        };
-        scheduleNext();
-        return () => window.clearTimeout(timer);
-    }, []);
-    useEffect(() => {
-        if (activeDangerSites.length > 0)
-            setAlertOpen(true);
+        setAlertOpen(activeDangerSites.length > 0);
         setAlertsAcknowledged(false);
     }, [activeDangerSites.length]);
+    useEffect(() => {
+        const monitorInfo = document.querySelector(`.${styles.monitorInfo}`);
+        monitorInfo?.classList.toggle(
+            styles.currentPredictionDanger,
+            selectedSite?.predictionLabel === 'wasp',
+        );
+    }, [selectedSite?.predictionLabel]);
     const selectedDanger = selectedSite?.status === 'danger';
     return (_jsxs("div", { children: [_jsx(PageHeader, { title: "\uC591\uBD09\uC7A5\uC758 \uC548\uC804\uC744 \uD55C\uB208\uC5D0", description: "\uC591\uBD09\uC7A5\uC758 \uC548\uC804\uC744 \uD655\uC778\uD558\uC138\uC694.", action: _jsxs("div", { className: styles.headerActions, children: [_jsxs("select", { "aria-label": "\uC0AC\uC5C5\uC7A5 \uC120\uD0DD", className: styles.siteSelect, value: selectedId, onChange: (e) => setSearchParams(e.target.value === 'all' ? {} : { site: e.target.value }), children: [_jsx("option", { value: "all", children: "\uC804\uCCB4 \uC0AC\uC5C5\uC7A5" }), sites.map((site) => _jsx("option", { value: site.id, children: site.name }, site.id))] }), _jsxs("button", { type: "button", className: `${styles.alertBell} ${activeDangerSites.length > 0 ? styles.alertBellDanger : ""}`, onClick: () => { setAlertsAcknowledged(true); setAlertOpen((open) => !open); }, "aria-label": `위험 알림 ${activeDangerSites.length}건`, "aria-expanded": alertOpen, children: [_jsx(BellIcon, { size: 18 }), activeDangerSites.length > 0 && !alertsAcknowledged && _jsx("i", { children: activeDangerSites.length })] }), activeDangerSites.length > 0 && alertOpen && _jsxs("div", { className: styles.bellAlert, role: "alert", children: [_jsx(BellIcon, { size: 17 }), _jsx("div", { className: styles.bellAlertList, children: activeDangerSites.map((site) => _jsxs("div", { className: styles.bellAlertItem, children: [_jsx("b", { children: site.name }), _jsxs("span", { children: ["말벌 ", site.aiConfidence, "% · 출입문 ", site.door === "closed" ? "닫힘" : "열림"] })] }, site.id)) }), _jsx("button", { type: "button", onClick: () => { setAlertsAcknowledged(true); setAlertOpen(false); }, "aria-label": "알림 닫기", children: "×" })] })] }) }), activeDangerSites.length > 0 && alertOpen && _jsx("div", { className: styles.alertSpacer, style: { height: `${activeDangerSites.length * 38 + 26}px` } }), _jsxs("div", { className: styles.statRow, children: [_jsx(StatCard, { icon: SiteIcon, label: "\uC0AC\uC5C5\uC7A5", value: String(visibleSites.length) }), _jsx(StatCard, { icon: CheckCircleIcon, label: "\uC815\uC0C1", value: String(normalCount), tone: "success" }), _jsx(StatCard, { icon: WarningIcon, label: "\uC704\uD5D8", value: String(dangerCount), tone: "danger" }), _jsx(StatCard, { icon: HistoryIcon, label: "\uBC29\uAE08 \uC804", value: "\uAC31\uC2E0\uB428", tone: "muted" })] }), selectedSite && (_jsxs("section", { className: `${styles.statusSummary} ${selectedDanger ? styles.statusSummaryDanger : ''}`, children: [_jsx("div", { className: `${styles.statusSymbol} ${selectedDanger ? styles.statusSymbolDanger : ''}`, children: selectedDanger ? '!' : '✓' }), _jsxs("div", { className: styles.statusBody, children: [_jsx("p", { className: styles.kicker, children: "\uD604\uC7AC \uC0C1\uD0DC" }), _jsx("h1", { className: styles.statusTitle, children: selectedDanger ? '말벌 침입 감지' : '정상 감시 중' }), _jsx("p", { className: styles.statusDesc, children: selectedDanger
                                     ? '말벌이 감지되어 출입문을 자동으로 닫았습니다.'

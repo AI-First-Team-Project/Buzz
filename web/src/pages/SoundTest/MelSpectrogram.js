@@ -28,8 +28,18 @@ function heatColor(v) {
     }
     return stops[stops.length - 1][1];
 }
-export function MelSpectrogram({ className }) {
+export function MelSpectrogram({ matrix, className }) {
+    const rowStep = Math.max(1, Math.ceil((matrix?.length || ROWS) / ROWS));
+    const colCount = matrix?.[0]?.length || COLUMNS;
+    const colStep = Math.max(1, Math.ceil(colCount / COLUMNS));
+    const values = matrix?.length
+        ? Array.from({ length: ROWS }, (_, row) => Array.from({ length: COLUMNS }, (_, col) => matrix[Math.min(matrix.length - 1, row * rowStep)]?.[Math.min(colCount - 1, col * colStep)] ?? -80))
+        : Array.from({ length: ROWS }, (_, row) => Array.from({ length: COLUMNS }, (_, col) => heatAt(col, row)));
+    const flattened = values.flat();
+    const min = Math.min(...flattened);
+    const max = Math.max(...flattened);
+    const range = max - min || 1;
     const cellW = 100 / COLUMNS;
     const cellH = 100 / ROWS;
-    return (_jsx("svg", { viewBox: "0 0 100 100", preserveAspectRatio: "none", className: className, "aria-hidden": "true", children: Array.from({ length: COLUMNS }).map((_, col) => Array.from({ length: ROWS }).map((_, row) => (_jsx("rect", { x: col * cellW, y: row * cellH, width: cellW + 0.5, height: cellH + 0.5, fill: heatColor(heatAt(col, row)) }, `${col}-${row}`)))) }));
+    return (_jsx("svg", { viewBox: "0 0 100 100", preserveAspectRatio: "none", className: className, role: "img", "aria-label": "Mel Spectrogram", children: values.map((rowValues, row) => rowValues.map((value, col) => (_jsx("rect", { x: col * cellW, y: (ROWS - row - 1) * cellH, width: cellW + 0.5, height: cellH + 0.5, fill: heatColor((value - min) / range) }, `${col}-${row}`)))) }));
 }

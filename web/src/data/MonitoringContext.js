@@ -1,10 +1,41 @@
 import { jsx as _jsx } from "react/jsx-runtime";
 // 모니터링 - 사업장 상태, 위험 알림, 출입문 및 설정 공유
 import { createContext, useContext, useEffect, useState } from 'react';
-import { sites as initialSites, detectionEvents as initialEvents } from './mockData';
+import { commandDoor, fetchHistory, fetchSiteStatuses } from '../api/buzzApi';
+import { sites as initialSites } from './mockData';
 const defaultSettings = { waspAlert: true, vibration: true, autoClose: true, autoCloseThreshold: 85 };
 const storageKey = 'buzz-web-settings-v1';
-const historyStorageKey = 'buzz-web-detection-history-v1';
+function percent(value) {
+    return Math.round((Number(value) || 0) * 1000) / 10;
+}
+function analysisLabel(site) {
+    const age = site.last_analysis_age_seconds;
+    if (age == null)
+        return '분석 대기 중';
+    if (site.worker_status === 'DEGRADED')
+        return `수신 지연 · ${Math.floor(age)}초 전`;
+    return age < 2 ? '방금 전' : `${Math.floor(age)}초 전`;
+}
+function adaptSite(site, previous) {
+    return {
+        ...previous,
+        id: `site-${site.site_id}`,
+        name: site.site_name,
+        status: site.status.toLowerCase(),
+        aiLabel: site.detected_class?.replace('_', '-') ?? 'non-wasp',
+        aiConfidence: percent(site.confidence),
+        probabilities: {
+            wasp: percent(site.probabilities?.wasp),
+            nonWasp: percent(site.probabilities?.non_wasp),
+        },
+        door: site.door_status.toLowerCase(),
+        lastAnalyzedAt: analysisLabel(site),
+        workerStatus: site.worker_status.toLowerCase(),
+        latestAnalysisId: site.latest_analysis_id,
+        consecutiveWasp: site.consecutive_wasp,
+        consecutiveNonWasp: site.consecutive_non_wasp,
+    };
+}
 function loadSettings() {
     try {
         const saved = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
@@ -15,26 +46,87 @@ function loadSettings() {
     catch { /* 저장소를 사용할 수 없으면 기본 설정 사용 */ }
     return defaultSettings;
 }
-function loadHistory() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(historyStorageKey) ?? 'null');
-        if (Array.isArray(saved))
-            return saved;
-    }
-    catch { /* 저장 이력이 없으면 초기 이력 사용 */ }
-    return initialEvents;
+function adaptHistoryItem(item) {
+    const timestamp = new Date(item.timestamp);
+    const confidence = percent(item.confidence);
+    const hasPrediction = item.result === 'wasp' || item.result === 'non_wasp';
+    const wasp = item.result === 'wasp' ? confidence : item.result === 'non_wasp' ? 100 - confidence : 0;
+    const nonWasp = item.result === 'non_wasp' ? confidence : item.result === 'wasp' ? 100 - confidence : 0;
+    return {
+        id: item.id,
+        date: timestamp.toISOString().slice(0, 10),
+        time: timestamp.toLocaleTimeString('ko-KR', { hour12: false }),
+        siteName: item.site_name,
+        kind: item.type === 'gate' ? 'door' : item.type === 'danger' ? 'danger' : 'detection',
+        label: item.title,
+        aiClassification: hasPrediction ? item.result.replace('_', '-') : 'non-wasp',
+        aiConfidence: hasPrediction ? confidence : 0,
+        probabilities: { wasp, nonWasp },
+        doorState: item.door_status.toLowerCase(),
+        action: item.action,
+        analysisId: item.analysis_id,
+    };
 }
 const Context = createContext(null);
 export function MonitoringProvider({ children }) {
-    const [state, setState] = useState(() => ({ sites: initialSites, detectionEvents: loadHistory() }));
+    const [state, setState] = useState(() => ({ sites: initialSites, detectionEvents: [] }));
+    const [monitoringError, setMonitoringError] = useState('');
     const [settings, setSettings] = useState(loadSettings);
     const [dangerDeadlines, setDangerDeadlines] = useState({});
     useEffect(() => {
-        try {
-            localStorage.setItem(historyStorageKey, JSON.stringify(state.detectionEvents));
+        let active = true;
+        async function refreshStatuses() {
+            try {
+                const statuses = await fetchSiteStatuses();
+                if (!active)
+                    return;
+                setState((previous) => ({
+                    ...previous,
+                    sites: statuses.map((site) => adaptSite(
+                        site,
+                        previous.sites.find((current) => current.id === `site-${site.site_id}`),
+                    )),
+                }));
+                setMonitoringError('');
+            }
+            catch (error) {
+                if (active) {
+                    setMonitoringError(error?.message || '사업장 상태를 불러오지 못했습니다.');
+                    setState((previous) => ({
+                        ...previous,
+                        sites: previous.sites.map((site) => ({
+                            ...site,
+                            workerStatus: 'degraded',
+                            lastAnalyzedAt: '서버 연결 지연',
+                        })),
+                    }));
+                }
+            }
         }
-        catch { /* 브라우저 저장소를 사용할 수 없으면 현재 세션에서 유지 */ }
-    }, [state.detectionEvents]);
+        refreshStatuses();
+        const timer = window.setInterval(refreshStatuses, 2000);
+        return () => {
+            active = false;
+            window.clearInterval(timer);
+        };
+    }, []);
+    useEffect(() => {
+        let active = true;
+        async function refreshHistory() {
+            try {
+                const history = await fetchHistory();
+                if (active)
+                    setState((previous) => ({ ...previous, detectionEvents: history.map(adaptHistoryItem) }));
+            }
+            catch { /* 마지막으로 정상 수신한 이력을 유지한다. */ }
+        }
+        refreshHistory();
+        const timer = window.setInterval(refreshHistory, 2000);
+        return () => {
+            active = false;
+            window.clearInterval(timer);
+        };
+    }, []);
     useEffect(() => {
         const timers = Object.entries(dangerDeadlines).map(([id, deadline]) => window.setTimeout(() => {
             detect(id, 'wasp', 97);
@@ -47,19 +139,21 @@ export function MonitoringProvider({ children }) {
         aiConfidence: site.aiConfidence, doorState: site.door,
     });
     const shouldClose = (site) => settings.autoClose && site.status === 'danger' && site.aiLabel === 'wasp' && site.aiConfidence >= settings.autoCloseThreshold;
-    function setDoor(id, door) {
-        const current = state.sites.find((site) => site.id === id);
-        if (current && door === 'open' && (current.door !== 'open' || current.status === 'danger')) {
-            setDangerDeadlines((prev) => ({ ...prev, [id]: Date.now() + 60000 }));
+    async function setDoor(id, door) {
+        const siteId = Number(id.replace('site-', ''));
+        try {
+            const response = await commandDoor(siteId, door);
+            setState((previous) => ({
+                ...previous,
+                sites: previous.sites.map((site) => site.id === id ? adaptSite(response, site) : site),
+            }));
+            setMonitoringError('');
+            return true;
         }
-        setState((prev) => {
-            const site = prev.sites.find((s) => s.id === id);
-            if (!site || (site.door === door && !(door === 'open' && site.status === 'danger')))
-                return prev;
-            const updated = { ...site, door, status: door === 'open' ? 'normal' : site.status };
-            const events = [makeEvent(updated, 'door', door === 'open' ? '사용자 개폐기 열기 · 정상 전환' : '사용자 개폐기 닫기')];
-            return { sites: prev.sites.map((s) => s.id === id ? updated : s), detectionEvents: [...events, ...prev.detectionEvents] };
-        });
+        catch (error) {
+            setMonitoringError(error?.message || '출입문을 제어하지 못했습니다.');
+            return false;
+        }
     }
     function detect(id, label, confidence) {
         if (!Number.isFinite(confidence) || confidence < 0 || confidence > 100)
@@ -111,7 +205,7 @@ export function MonitoringProvider({ children }) {
         });
         return true;
     }
-    return _jsx(Context.Provider, { value: { ...state, settings, saveSettings, setDoor, detect }, children: children });
+    return _jsx(Context.Provider, { value: { ...state, monitoringError, settings, saveSettings, setDoor, detect }, children: children });
 }
 export function useMonitoring() {
     const context = useContext(Context);

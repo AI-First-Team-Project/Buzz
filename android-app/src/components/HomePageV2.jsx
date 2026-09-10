@@ -1,19 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import BottomNav from "./BottomNav";
 import { BuzzMark } from "./Logo";
+import { useSiteStatuses } from "../hooks/useSiteStatuses";
+import { commandDoor } from "../api/buzzApi";
 import {
-  getRuntimeSites,
   getSelectedSiteId,
-  getSiteRuntimeStatus,
-  appendRuntimeHistory,
-  setSiteRuntimeStatus,
   setSelectedSiteId as persistSelectedSiteId,
 } from "../types";
-
-const classification = {
-  normal: { primary: "말벌 아님", primaryValue: 94, wasp: 6 },
-  danger: { primary: "말벌", primaryValue: 97, nonWasp: 3 },
-};
 
 function DoorIcon({ open }) {
   return open ? (
@@ -42,24 +35,15 @@ function BeeMascot({ danger = false }) {
 }
 
 export default function HomePage({ setPage, onOpenSite }) {
-  const [sites, setSites] = useState(() => {
-    const runtime = getRuntimeSites();
-    return runtime.map((site) =>
-      getSiteRuntimeStatus(site.id) === null
-        ? { ...site, status: "normal", insect: null, count: 0, confidence: 0 }
-        : site
-    );
-  });
+  const { sites, setSites, error: monitoringError } = useSiteStatuses();
   const [selectedSiteId, setSelectedSiteId] = useState(getSelectedSiteId);
   const [siteMenu, setSiteMenu] = useState(false);
   const [now, setNow] = useState(new Date());
-  const [lastAnalysisAt, setLastAnalysisAt] = useState(Date.now());
-  const [lastAnalysisLabel, setLastAnalysisLabel] = useState("방금 전");
   const [doorOpen, setDoorOpen] = useState(true);
+  const [doorControlPending, setDoorControlPending] = useState(false);
   const [toast, setToast] = useState("");
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertsAcknowledged, setAlertsAcknowledged] = useState(false);
-  const dangerTimer = useRef(null);
 
   const selectedSite = useMemo(
     () => sites.find((site) => site.id === selectedSiteId) ?? sites[0],
@@ -67,7 +51,10 @@ export default function HomePage({ setPage, onOpenSite }) {
   );
   const danger = selectedSite?.status === "danger";
   const dangerSites = useMemo(() => sites.filter((site) => site.status === "danger"), [sites]);
-  const ai = danger ? classification.danger : classification.normal;
+  const waspProbability = selectedSite?.probabilities?.wasp ?? 0;
+  const nonWaspProbability = selectedSite?.probabilities?.nonWasp ?? 0;
+  const waspDetected = selectedSite?.insect === "wasps";
+  const ai = { primary: "말벌 확률", primaryValue: waspProbability, nonWasp: nonWaspProbability };
 
   useEffect(() => {
     if (dangerSites.length > 0) {
@@ -81,48 +68,13 @@ export default function HomePage({ setPage, onOpenSite }) {
   useEffect(() => {
     const timer = setInterval(() => {
       setNow(new Date());
-      const diff = Math.max(0, Math.floor((Date.now() - lastAnalysisAt) / 1000));
-      setLastAnalysisLabel(diff < 2 ? "방금 전" : `${diff}초 전`);
     }, 1000);
     return () => clearInterval(timer);
-  }, [lastAnalysisAt]);
-
-  // UI 데모용 Kafka 입력 시뮬레이션:
-  // 10~30초 사이의 랜덤 간격으로 새 음원 조각이 도착한 것으로 보고
-  // "마지막 분석" 시각을 갱신한다.
-  // 실제 연동 시에는 FastAPI/Kafka Consumer 결과 수신 시 setLastAnalysisAt(Date.now())를 호출하면 된다.
-  useEffect(() => {
-    let timer;
-    const scheduleNext = () => {
-      const delay = 10000 + Math.floor(Math.random() * 20001);
-      timer = setTimeout(() => {
-        setLastAnalysisAt(Date.now());
-        scheduleNext();
-      }, delay);
-    };
-    scheduleNext();
-    return () => clearTimeout(timer);
-  }, []);
-
-  // 기존 팀원 데모 로직 유지: 사업장 3은 약 10초 후 말벌 이벤트를 발생시킬 수 있다.
-  useEffect(() => {
-    [1, 2].forEach((id) => setSiteRuntimeStatus(id, "normal"));
-    if (getSiteRuntimeStatus(3) === null) setSiteRuntimeStatus(3, "normal");
-    setSites(getRuntimeSites());
-
-    const existingDanger = getSiteRuntimeStatus(3) === "danger";
-    if (existingDanger) return;
-
-    const timer = setTimeout(() => {
-      setSiteRuntimeStatus(3, "danger");
-      setSites(getRuntimeSites());
-    }, 10000);
-    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    setDoorOpen(!danger);
-  }, [selectedSiteId, danger]);
+    setDoorOpen(selectedSite?.door !== "closed");
+  }, [selectedSiteId, selectedSite?.door]);
 
   useEffect(() => {
     if (!toast) return;
@@ -130,27 +82,22 @@ export default function HomePage({ setPage, onOpenSite }) {
     return () => clearTimeout(t);
   }, [toast]);
 
-  useEffect(() => () => window.clearTimeout(dangerTimer.current), []);
-
-  const operateDoor = () => {
-    if (doorOpen) {
-      setDoorOpen(false);
-      appendRuntimeHistory({ type: "gate", site: selectedSite.name, time: new Date().toLocaleTimeString("ko-KR", { hour12: false }), title: "사용자 문 닫기", result: danger ? "말벌" : "말벌 아님", confidence: danger ? 97 : 95, door: "닫힘", action: "수동 폐쇄", probs: { wasp: danger ? 97 : 5, nonWasp: danger ? 3 : 95 }, flow: ["사용자 제어", "출입문 닫힘", "이력 저장"] });
-      setToast("출입문을 닫았습니다.");
-      return;
-    }
-    setDoorOpen(true);
-    if (danger) {
-      setSiteRuntimeStatus(selectedSiteId, "normal");
-      appendRuntimeHistory({ type: "gate", site: selectedSite.name, time: new Date().toLocaleTimeString("ko-KR", { hour12: false }), title: "사용자 문 열기", result: "말벌", confidence: 97, door: "열림", action: "정상 전환", probs: { wasp: 97, nonWasp: 3 }, flow: ["사용자 문 열기", "정상 상태 전환", "1분 뒤 위험 재확인"] });
-      setSites(getRuntimeSites());
-      dangerTimer.current = window.setTimeout(() => {
-        setSiteRuntimeStatus(selectedSiteId, "danger");
-        setSites(getRuntimeSites());
-      }, 60000);
-      setToast("출입문을 열어 정상 상태로 전환되었습니다. 1분 뒤 위험이 다시 표시됩니다.");
-    } else {
-      setToast("출입문을 열었습니다.");
+  const operateDoor = async () => {
+    if (!selectedSite || doorControlPending) return;
+    const action = doorOpen ? "close" : "open";
+    setDoorControlPending(true);
+    try {
+      const response = await commandDoor(selectedSite.id, action);
+      const open = response.door_status === "OPEN";
+      setDoorOpen(open);
+      setSites((previous) => previous.map((site) => site.id === selectedSite.id
+        ? { ...site, door: response.door_status.toLowerCase(), status: response.status.toLowerCase() }
+        : site));
+      setToast(`출입문을 ${open ? "열었습니다" : "닫았습니다"}.`);
+    } catch (error) {
+      setToast(error.message || "출입문을 제어하지 못했습니다.");
+    } finally {
+      setDoorControlPending(false);
     }
   };
 
@@ -158,12 +105,6 @@ export default function HomePage({ setPage, onOpenSite }) {
     setSelectedSiteId(id);
     persistSelectedSiteId(id);
     setSiteMenu(false);
-    setSites(getRuntimeSites());
-  };
-
-  const resetDemo = () => {
-    setSiteRuntimeStatus(selectedSiteId, danger ? "normal" : "danger");
-    setSites(getRuntimeSites());
   };
 
   return (
@@ -229,8 +170,8 @@ export default function HomePage({ setPage, onOpenSite }) {
       <main className="buzz-commercial-content">
         <div className={`buzz-system-strip ${danger ? "danger" : ""}`}>
           <span className="buzz-dot" />
-          <b>{danger ? "위험 감지" : "시스템 정상"}</b>
-          <span>{selectedSite.name}</span>
+          <b>{monitoringError ? "서버 연결 지연" : danger ? "위험 감지" : "시스템 정상"}</b>
+          <span>{monitoringError ? "마지막 수신 상태 표시 중" : selectedSite.name}</span>
         </div>
 
         <section className={`buzz-status-summary ${danger ? "danger" : ""}`}>
@@ -241,7 +182,7 @@ export default function HomePage({ setPage, onOpenSite }) {
             <p className="buzz-kicker">현재 상태</p>
             <h1>{danger ? "말벌 침입 감지" : "정상 감시 중"}</h1>
             <p>{danger ? "말벌이 감지되어 출입문을 자동으로 닫았습니다." : "현재 양봉장은 안전합니다."}</p>
-            <small>마지막 분석 {lastAnalysisLabel}</small>
+            <small>마지막 분석 {selectedSite?.lastAnalyzedAt ?? "분석 대기 중"}</small>
           </div>
           <BeeMascot danger={danger} />
         </section>
@@ -269,12 +210,12 @@ export default function HomePage({ setPage, onOpenSite }) {
           </div>
         </section>
 
-        <section className={`buzz-card buzz-ai-card buzz-ai-compact ${danger ? "danger" : ""}`}>
+        <section className={`buzz-card buzz-ai-card buzz-ai-compact ${danger ? "danger" : ""} ${waspDetected ? "prediction-danger" : ""}`}>
           <div className="buzz-ai-compact-main">
             <div>
               <p className="buzz-kicker">AI 판정</p>
               <div className="buzz-ai-line">
-                <BeeMascot danger={danger} />
+                <BeeMascot danger={waspDetected} />
                 <b>{ai.primary}</b>
                 <strong>{ai.primaryValue}%</strong>
               </div>
@@ -282,15 +223,7 @@ export default function HomePage({ setPage, onOpenSite }) {
             <span className={`buzz-status-chip ${danger ? "danger" : ""}`}>{danger ? "위험" : "정상"}</span>
           </div>
           <div className="buzz-ai-mini-row">
-            {danger ? (
-            <>
-                <span>말벌 아님 {ai.nonWasp}%</span>
-              </>
-            ) : (
-            <>
-                <span>말벌 {ai.wasp}%</span>
-              </>
-            )}
+            <span>안전 확률 {ai.nonWasp}%</span>
           </div>
         </section>
 
@@ -306,14 +239,14 @@ export default function HomePage({ setPage, onOpenSite }) {
             </div>
           </div>
 
-          <button className={`buzz-door-action ${danger && !doorOpen ? "danger" : ""}`} onClick={operateDoor}>
+          <button className={`buzz-door-action ${danger && !doorOpen ? "danger" : ""}`} onClick={operateDoor} disabled={doorControlPending}>
             <DoorIcon open={!doorOpen} />
-            {doorOpen ? "문 닫기" : "문 열기"}
+            {doorControlPending ? "처리 중..." : doorOpen ? "문 닫기" : "문 열기"}
           </button>
 
           <p className="buzz-door-note">
             ⓘ {danger
-              ? "문을 열면 위험 상태가 해제되고 정상 상태로 전환됩니다."
+              ? "문을 열어도 위험 상태는 유지되며, 3회 연속 미탐지 시 정상으로 복귀합니다."
               : "위험 감지 시 출입문이 자동으로 닫힙니다."}
           </p>
         </section>
