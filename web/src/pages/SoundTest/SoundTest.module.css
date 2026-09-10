@@ -130,6 +130,15 @@
   cursor: not-allowed;
 }
 
+.errorMessage {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-tint);
+  color: var(--danger);
+  font-size: 13px;
+}
+
 .guideCard {
   display: flex;
   min-height: 352px;

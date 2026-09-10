@@ -6,7 +6,7 @@ UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # FastAPI에서 사용할 ai_model 모델. 다른 종류로 바꾼 뒤 서버를 재시작한다.
-AI_MODEL_NAME = "CRNN"
+AI_MODEL_NAME = "CNN"
 AI_MODEL_DIR = PROJECT_ROOT / "ai_model" / "models"
 AI_MODEL_THRESHOLD = 0.5
 
