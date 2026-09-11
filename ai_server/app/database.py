@@ -110,20 +110,23 @@ def save_detection_result(
         )
         detection_event_id = cursor.lastrowid
 
-        cursor.execute(
-            """
-            INSERT INTO analysis_graph_data (
-                detection_event_id, waveform, fft, spectrogram, mfcc
-            ) VALUES (%s, %s, %s, %s, %s)
-            """,
-            (
-                detection_event_id,
-                _json(result.waveform.model_dump()),
-                _json(result.fft.model_dump(by_alias=True)),
-                _json(result.spectrogram.model_dump()),
-                _json(result.mfcc.model_dump()),
-            ),
-        )
+        # Batch simulator responses intentionally omit heavy visualization data.
+        # Persist their detection event without manufacturing graph payloads.
+        if all(hasattr(result, field) for field in ("waveform", "fft", "spectrogram", "mfcc")):
+            cursor.execute(
+                """
+                INSERT INTO analysis_graph_data (
+                    detection_event_id, waveform, fft, spectrogram, mfcc
+                ) VALUES (%s, %s, %s, %s, %s)
+                """,
+                (
+                    detection_event_id,
+                    _json(result.waveform.model_dump()),
+                    _json(result.fft.model_dump(by_alias=True)),
+                    _json(result.spectrogram.model_dump()),
+                    _json(result.mfcc.model_dump()),
+                ),
+            )
         connection.commit()
         return int(detection_event_id)
     except Exception:

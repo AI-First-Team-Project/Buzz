@@ -1,6 +1,11 @@
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const isNativeAndroid = typeof window !== "undefined" &&
+  Boolean(window.Capacitor?.isNativePlatform?.());
+const defaultBaseUrl = isNativeAndroid
+  ? "http://10.0.2.2:8000"
+  : "http://localhost:8000";
 
-export const API_BASE_URL = (configuredBaseUrl || "http://localhost:8000").replace(/\/$/, "");
+export const API_BASE_URL = (configuredBaseUrl || defaultBaseUrl).replace(/\/$/, "");
 
 async function readError(response) {
   try {
@@ -58,16 +63,44 @@ export async function fetchSiteStatuses() {
 }
 
 export async function fetchHistory(limit = 500) {
-  let response;
+  let historyResponse;
+  let analysisResponse;
   try {
-    response = await fetch(`${API_BASE_URL}/api/history?limit=${limit}`);
+    [historyResponse, analysisResponse] = await Promise.all([
+      fetch(`${API_BASE_URL}/api/history?limit=${limit}`),
+      fetch(`${API_BASE_URL}/api/analysis-logs?limit=${limit}`),
+    ]);
   } catch {
     throw new Error(`AI 서버에 연결할 수 없습니다. 서버 주소: ${API_BASE_URL}`);
   }
-  if (!response.ok) throw new Error(await readError(response));
-  const data = await response.json();
-  if (!Array.isArray(data)) throw new Error("이력 응답 형식이 올바르지 않습니다.");
-  return data;
+  if (!historyResponse.ok) throw new Error(await readError(historyResponse));
+  if (!analysisResponse.ok) throw new Error(await readError(analysisResponse));
+
+  const [history, analysisLogs] = await Promise.all([
+    historyResponse.json(),
+    analysisResponse.json(),
+  ]);
+  if (!Array.isArray(history) || !Array.isArray(analysisLogs)) {
+    throw new Error("이력 응답 형식이 올바르지 않습니다.");
+  }
+
+  const persistedPredictions = analysisLogs.map((item) => ({
+    id: `analysis-${item.analysis_id}`,
+    type: item.prediction === "wasp" ? "danger" : "recovery",
+    site_id: item.site_id,
+    site_name: item.site_id ? `사업장 ${item.site_id}` : "사용자 테스트",
+    title: item.analysis_type === "test" ? "사용자 음원 분석" : "AI 음원 분석",
+    timestamp: item.detected_at,
+    result: item.prediction,
+    confidence: item.confidence,
+    door_status: "OPEN",
+    action: "analysis",
+    analysis_id: item.analysis_id,
+  }));
+
+  return [...history, ...persistedPredictions]
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    .slice(0, limit);
 }
 
 export async function commandDoor(siteId, action) {

@@ -12,7 +12,6 @@ import styles from './History.module.css';
 const KOREAN_LABEL = { wasp: '말벌', 'non-wasp': '말벌 아님' };
 const PAGE_SIZE = 10;
 const PAGE_BUTTON_COUNT = 10;
-const HISTORY_OVERVIEW = { total: 24, danger: 8, door: 3 };
 
 function Probability({ label, value, danger = false }) {
   return _jsxs('div', { className: styles.probability, children: [
@@ -155,9 +154,9 @@ export function History() {
   return _jsxs('div', { className: styles.historyPage, children: [
     _jsx(PageHeader, { title: '감지 이력', description: '위험 감지와 출입문 동작을 확인하세요.' }),
     _jsxs('div', { className: styles.statRow, children: [
-      _jsx(StatCard, { icon: HistoryIcon, label: '전체 이벤트', value: String(HISTORY_OVERVIEW.total) }),
-      _jsx(StatCard, { icon: WarningIcon, label: '위험', value: String(HISTORY_OVERVIEW.danger), tone: 'danger' }),
-      _jsx(StatCard, { icon: DoorIcon, label: '문 제어', value: String(HISTORY_OVERVIEW.door), tone: 'success' }),
+      _jsx(StatCard, { icon: HistoryIcon, label: '전체 이벤트', value: String(detectionEvents.length) }),
+      _jsx(StatCard, { icon: WarningIcon, label: '위험', value: String(dangerCount), tone: 'danger' }),
+      _jsx(StatCard, { icon: DoorIcon, label: '문 제어', value: String(doorCount), tone: 'success' }),
     ] }),
     _jsxs('div', { className: styles.controlRow, children: [
       _jsxs('div', { className: styles.filterRow, children: [

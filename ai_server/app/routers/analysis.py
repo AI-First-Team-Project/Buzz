@@ -6,7 +6,7 @@ from uuid import uuid4
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from ..config import ALLOWED_EXTENSIONS, MAX_UPLOAD_BYTES, UPLOAD_DIR
-from ..database import safe_save_detection_result
+from ..database import safe_save_detection_result, safe_update_gate_status
 from ..latest_analysis_store import (
     cache_latest_visualization,
     get_latest_analysis_source,
@@ -18,6 +18,15 @@ from ..services.analysis_service import analyze_audio, analyze_audio_batch, crea
 from ..store import apply_prediction, get_site
 
 router = APIRouter(prefix="/api", tags=["analysis"])
+
+
+def _apply_prediction_and_sync_gate(**kwargs) -> dict:
+    site_id = kwargs["site_id"]
+    previous = get_site(site_id)
+    updated = apply_prediction(**kwargs)
+    if previous is not None and previous["door_status"] != "CLOSED" and updated["door_status"] == "CLOSED":
+        safe_update_gate_status(site_id, "closed")
+    return updated
 
 
 def _audio_bytes(saved_audio) -> bytes:
@@ -83,7 +92,7 @@ async def auto_analyze(
     try:
         named_path = _save_upload(file)
         result = analyze_audio(named_path, "auto_detection", file.filename)
-        apply_prediction(
+        _apply_prediction_and_sync_gate(
             site_id=site_id,
             class_name=result.prediction.label,
             confidence=result.prediction.confidence,
@@ -127,7 +136,7 @@ async def auto_analyze_batch(
         results = analyze_audio_batch(saved)
         response = []
         for site_id, result, (saved_audio, _) in zip(site_ids, results, saved, strict=True):
-            apply_prediction(
+            _apply_prediction_and_sync_gate(
                 site_id=site_id,
                 class_name=result.prediction.label,
                 confidence=result.prediction.confidence,
@@ -186,7 +195,7 @@ def analyze_file_from_path(payload: AnalyzePathRequest):
 
     try:
         result = analyze_audio(audio_path, payload.source)
-        apply_prediction(
+        _apply_prediction_and_sync_gate(
             site_id=payload.site_id,
             class_name=result.prediction.label,
             confidence=result.prediction.confidence,

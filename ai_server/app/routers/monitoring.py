@@ -49,7 +49,8 @@ def history(limit: int = Query(default=100, ge=1, le=500)):
 def door(site_id: int, command: DoorCommand):
     try:
         result = _with_worker_status(set_door(site_id, command.action))
-        safe_update_gate_status(site_id, command.action)
+        db_status = "open" if command.action == "open" else "closed"
+        safe_update_gate_status(site_id, db_status)
         return result
     except KeyError:
         raise HTTPException(status_code=404, detail="사업장을 찾을 수 없습니다.")

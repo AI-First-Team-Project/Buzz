@@ -2,6 +2,7 @@ import { jsx as _jsx } from "react/jsx-runtime";
 // 모니터링 - 사업장 상태, 위험 알림, 출입문 및 설정 공유
 import { createContext, useContext, useEffect, useState } from 'react';
 import { sites as initialSites, detectionEvents as initialEvents } from './mockData';
+import { commandDoor, fetchHistory, fetchSiteStatuses } from '../api/buzzApi';
 const defaultSettings = { waspAlert: true, vibration: true, autoClose: true, autoCloseThreshold: 85 };
 const storageKey = 'buzz-web-settings-v1';
 const historyStorageKey = 'buzz-web-detection-history-v1';
@@ -25,10 +26,53 @@ function loadHistory() {
     return initialEvents;
 }
 const Context = createContext(null);
+
+function mapSite(site) {
+    const fallback = initialSites.find((item) => item.id === `site-${site.site_id}`);
+    return {
+        id: `site-${site.site_id}`,
+        name: site.site_name,
+        status: site.status === 'DANGER' ? 'danger' : 'normal',
+        aiLabel: site.detected_class === 'wasp' ? 'wasp' : 'non-wasp',
+        aiConfidence: Math.round((site.confidence ?? 0) * 100),
+        door: site.door_status === 'CLOSED' ? 'closed' : 'open',
+        lastAnalyzedAt: site.last_analysis_time,
+        photoTone: fallback?.photoTone ?? 'green',
+    };
+}
+
+function mapEvent(event) {
+    const timestamp = new Date(event.timestamp);
+    return {
+        id: String(event.id),
+        date: Number.isNaN(timestamp.getTime()) ? '' : timestamp.toISOString().slice(0, 10),
+        time: Number.isNaN(timestamp.getTime()) ? '' : timestamp.toLocaleTimeString('ko-KR', { hour12: false }),
+        siteName: event.site_name,
+        kind: event.type === 'gate' ? 'door' : event.type === 'danger' ? 'danger' : 'detection',
+        label: event.title,
+        aiClassification: event.result === 'wasp' ? 'wasp' : 'non-wasp',
+        aiConfidence: Math.round((event.confidence ?? 0) * 100),
+        doorState: event.door_status === 'CLOSED' ? 'closed' : 'open',
+        analysisId: event.analysis_id,
+    };
+}
+
 export function MonitoringProvider({ children }) {
     const [state, setState] = useState(() => ({ sites: initialSites, detectionEvents: loadHistory() }));
     const [settings, setSettings] = useState(loadSettings);
     const [dangerDeadlines, setDangerDeadlines] = useState({});
+    useEffect(() => {
+        let cancelled = false;
+        Promise.allSettled([fetchSiteStatuses(), fetchHistory()]).then(([sitesResult, historyResult]) => {
+            if (cancelled)
+                return;
+            setState((prev) => ({
+                sites: sitesResult.status === 'fulfilled' ? sitesResult.value.map(mapSite) : prev.sites,
+                detectionEvents: historyResult.status === 'fulfilled' ? historyResult.value.map(mapEvent) : prev.detectionEvents,
+            }));
+        });
+        return () => { cancelled = true; };
+    }, []);
     useEffect(() => {
         try {
             localStorage.setItem(historyStorageKey, JSON.stringify(state.detectionEvents));
@@ -47,19 +91,23 @@ export function MonitoringProvider({ children }) {
         aiConfidence: site.aiConfidence, doorState: site.door,
     });
     const shouldClose = (site) => settings.autoClose && site.status === 'danger' && site.aiLabel === 'wasp' && site.aiConfidence >= settings.autoCloseThreshold;
-    function setDoor(id, door) {
-        const current = state.sites.find((site) => site.id === id);
-        if (current && door === 'open' && (current.door !== 'open' || current.status === 'danger')) {
-            setDangerDeadlines((prev) => ({ ...prev, [id]: Date.now() + 60000 }));
+    async function setDoor(id, door) {
+        const siteId = Number(id.replace('site-', ''));
+        if (!Number.isInteger(siteId))
+            return;
+        try {
+            const updatedSite = mapSite(await commandDoor(siteId, door === 'open' ? 'open' : 'close'));
+            let refreshedEvents = null;
+            try {
+                refreshedEvents = (await fetchHistory()).map(mapEvent);
+            }
+            catch { /* 문 제어 성공은 유지하고 기존 이력을 안전한 fallback으로 사용 */ }
+            setState((prev) => ({
+                sites: prev.sites.map((site) => site.id === id ? updatedSite : site),
+                detectionEvents: refreshedEvents ?? prev.detectionEvents,
+            }));
         }
-        setState((prev) => {
-            const site = prev.sites.find((s) => s.id === id);
-            if (!site || (site.door === door && !(door === 'open' && site.status === 'danger')))
-                return prev;
-            const updated = { ...site, door, status: door === 'open' ? 'normal' : site.status };
-            const events = [makeEvent(updated, 'door', door === 'open' ? '사용자 개폐기 열기 · 정상 전환' : '사용자 개폐기 닫기')];
-            return { sites: prev.sites.map((s) => s.id === id ? updated : s), detectionEvents: [...events, ...prev.detectionEvents] };
-        });
+        catch { /* API 실패 시 화면과 기존 데이터를 그대로 유지 */ }
     }
     function detect(id, label, confidence) {
         if (!Number.isFinite(confidence) || confidence < 0 || confidence > 100)

@@ -15,7 +15,7 @@ const config: CapacitorConfig = {
   android: {
     // 웹뷰 안전영역/배경색. 상태바까지 딥 네이비로 채움
     backgroundColor: '#0A0E1A',
-    allowMixedContent: false,
+    allowMixedContent: true,
     captureInput: true,
     webContentsDebuggingEnabled: true, // 배포 시 false 로 바꾸세요
   },
