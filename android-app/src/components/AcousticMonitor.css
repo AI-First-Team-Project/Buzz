@@ -1,0 +1,17 @@
+/* 음향 모니터링 - 모바일 파형·스펙트로그램과 영상 전환 스타일 */
+.buzz-acoustic-monitor{padding:14px;margin-bottom:11px;border:1px solid #eadfcf;border-radius:18px;background:#fff;box-shadow:0 6px 20px #29313a08}
+.buzz-acoustic-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.buzz-acoustic-heading h2{margin:0;font-size:13px;font-weight:800;color:#102238}
+.buzz-acoustic-switch{display:flex;gap:4px;padding:3px;background:#f4f5f7;border-radius:20px;width:fit-content;margin-bottom:14px}
+.buzz-acoustic-switch button{border:0;border-radius:18px;padding:7px 16px;background:transparent;font-size:11px;font-weight:700;color:#64748b;cursor:pointer}
+.buzz-acoustic-switch button[aria-pressed=true]{background:#102a43;color:#fff}
+.buzz-acoustic-label{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:#334155;margin-bottom:5px}
+.buzz-acoustic-label span{color:#8491a2;font-size:9px}
+.buzz-acoustic-wave,.buzz-acoustic-mini{display:block;width:100%;height:68px;margin-bottom:10px}
+.buzz-acoustic-mini{height:44px;margin:5px 0}
+.buzz-acoustic-spectrum{display:block;width:100%;height:82px;border-radius:5px;background:#170d35}
+.buzz-acoustic-axis{display:flex;justify-content:space-between;font-size:9px;color:#8491a2;margin-top:5px}
+.buzz-acoustic-monitor video{display:block;width:min(100%,480px);aspect-ratio:16/9;height:auto;object-fit:contain;margin:0 auto;border-radius:8px;background:#102238}
+.buzz-acoustic-note{font-size:10px;color:#8491a2;margin:6px 0}
+.buzz-acoustic-detail{display:flex;justify-content:space-between;width:100%;border:0;border-top:1px solid #eef0f4;background:none;padding:11px 0 0;margin-top:12px;color:#102a43;font-size:11px;font-weight:800;cursor:pointer}
+.buzz-acoustic-switch button:focus-visible,.buzz-acoustic-detail:focus-visible{outline:2px solid #f7b500;outline-offset:3px}

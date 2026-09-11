@@ -34,6 +34,17 @@
   border-color: #ffd2ca;
   background: #fff4f1;
   color: var(--danger);
+  animation: webDangerBell 1.15s ease-in-out infinite;
+}
+
+.alertBellDanger::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border: 2px solid rgba(239, 76, 70, 0.42);
+  border-radius: 15px;
+  animation: webDangerRing 1.15s ease-out infinite;
+  pointer-events: none;
 }
 
 .alertBell i {
@@ -52,6 +63,7 @@
   font-size: 10px;
   font-style: normal;
   font-weight: 800;
+  animation: webDangerBadge 1.15s ease-in-out infinite;
 }
 
 .bellAlert {
@@ -70,7 +82,67 @@
   background: #fff5f2;
   color: var(--danger-strong);
   font-size: 12px;
+  box-shadow: 0 10px 24px rgba(220, 62, 57, 0.14);
+  animation: webAlertEnter 0.28s ease-out both;
 }
+
+@keyframes webDangerBell {
+  0%, 100% { transform: rotate(0deg); box-shadow: 0 0 0 0 rgba(239, 76, 70, 0.26); }
+  18% { transform: rotate(-10deg); }
+  36% { transform: rotate(9deg); }
+  54% { transform: rotate(-6deg); box-shadow: 0 0 0 8px rgba(239, 76, 70, 0); }
+}
+
+@keyframes webDangerRing {
+  from { opacity: 0.9; transform: scale(0.82); }
+  to { opacity: 0; transform: scale(1.25); }
+}
+
+@keyframes webDangerBadge {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.16); }
+}
+
+@keyframes webAlertEnter {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alertBellDanger, .alertBellDanger::after, .alertBell i, .bellAlert { animation: none; }
+}
+
+.dangerModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(12, 25, 40, 0.46);
+  backdrop-filter: blur(3px);
+}
+
+.dangerModal {
+  width: min(100%, 390px);
+  padding: 28px;
+  border: 1px solid #ffc9c1;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 22px 60px rgba(18, 29, 44, 0.26);
+  text-align: center;
+  animation: webAlertEnter 0.28s ease-out both;
+}
+
+.dangerModalIcon { display: grid; width: 52px; height: 52px; place-items: center; margin: 0 auto 12px; border-radius: 17px; background: #ffe3de; color: var(--danger); font-size: 27px; font-weight: 900; }
+.dangerModal > p { margin: 0; color: var(--danger); font-size: 12px; font-weight: 800; }
+.dangerModal h2 { margin: 4px 0 9px; color: #192a3b; font-size: 23px; }
+.dangerModal strong, .dangerModal > span { display: block; }
+.dangerModal strong { color: var(--danger-strong); font-size: 14px; }
+.dangerModal > span { margin-top: 7px; color: var(--text-secondary); font-size: 13px; }
+.dangerModalActions { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 22px; }
+.dangerModalActions button { border: 0; border-radius: 10px; padding: 11px; background: #fff0ed; color: var(--danger-strong); font-size: 13px; font-weight: 800; cursor: pointer; }
+.dangerModalActions button:last-child { background: var(--danger); color: #fff; }
 
 .bellAlertList {
   flex: 1;
@@ -265,25 +337,21 @@
 .confidenceValue {
   font-size: 26px;
   font-weight: 800;
-  color: var(--success);
+  color: var(--danger);
 }
 
 .confidenceBarTrack {
   height: 8px;
   border-radius: 999px;
-  background: var(--success-tint);
+  background: var(--danger-tint);
   overflow: hidden;
 }
 
 .confidenceBarFill {
   height: 100%;
-  background: var(--success);
+  background: var(--danger);
   border-radius: 999px;
 }
-
-.currentPredictionDanger .confidenceValue { color: var(--danger); }
-.currentPredictionDanger .confidenceBarTrack { background: var(--danger-tint); }
-.currentPredictionDanger .confidenceBarFill { background: var(--danger); }
 
 .doorControl { border-top: 1px solid var(--border); padding-top: 18px; }
 .doorState { display: flex; align-items: center; gap: 12px; }
@@ -296,9 +364,7 @@
 .doorActionDanger { background: #ef4a49; }
 .doorAction:hover { filter: brightness(1.1); }
 .doorAction:focus-visible { outline: 3px solid var(--brand-yellow); outline-offset: 3px; }
-.doorNote { font-size: 0; line-height: 1.6; color: var(--text-muted); margin: 10px 0 0; }
-.doorNote::after { content: '수동 제어 결과는 서버에 저장됩니다. 위험 감지 시 출입문이 자동으로 닫힙니다.'; font-size: 12px; }
-.monitorInfo:has([class*="danger"]) .doorNote::after { content: '문을 열어도 위험 상태는 유지됩니다. 정상 복귀는 3회 연속 미탐지 후 처리됩니다.'; }
+.doorNote { font-size: 12px; line-height: 1.6; color: var(--text-muted); margin: 10px 0 0; }
 
 .sectionTitle {
   font-size: 14px;

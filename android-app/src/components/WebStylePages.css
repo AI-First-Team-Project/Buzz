@@ -1,0 +1,138 @@
+/* 분석·감지 이력 - 웹 디자인을 모바일 화면에 맞춘 스타일 */
+.buzz-web-analysis,.buzz-web-history{padding-top:22px}
+.buzz-web-analysis .buzz-page-heading,.buzz-web-history .buzz-page-heading{margin-bottom:20px}
+.buzz-web-analysis .buzz-page-heading{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
+.buzz-web-analysis .buzz-page-heading h1,.buzz-web-history .buzz-page-heading h1{font-size:21px;margin:0}
+.buzz-web-analysis .buzz-page-desc,.buzz-web-history .buzz-page-desc{font-size:11px;line-height:1.6;color:#718096}
+.buzz-web-analysis .buzz-page-heading>.buzz-page-desc{grid-column:1 / -1;margin:0}
+.buzz-web-analysis .buzz-analysis-site-selector{background:none;border:0;box-shadow:none;padding:0;margin:0}
+.buzz-web-analysis .buzz-analysis-site-selector select{min-width:104px;background:#fff;border-radius:10px;padding:7px 10px;font-size:11px}
+.buzz-web-analysis .buzz-metric-card{display:grid;grid-template-columns:32px 1fr;column-gap:10px;padding:14px;border-radius:16px;align-items:center}
+.buzz-web-analysis .buzz-metric-card:before{content:'▥';grid-row:1 / 3;display:grid;place-items:center;width:32px;height:32px;background:#fff0bf;color:#e7a300;border-radius:10px}
+.buzz-web-analysis .buzz-metric-card.danger:before{content:'⚠';background:#fff0ed;color:#ff465b}
+.buzz-web-analysis .buzz-metric-card span{font-size:10px}
+.buzz-web-analysis .buzz-metric-card strong{font-size:19px;line-height:1.3;color:#102238}
+.buzz-web-analysis .buzz-metric-card small{display:none}
+.buzz-web-analysis .buzz-card{background:#fff;border-radius:16px;margin-bottom:14px;padding:16px}
+.buzz-web-analysis .buzz-analysis-summary-card.danger{background:#fff;border-color:#ff465b}
+.buzz-web-analysis .buzz-analysis-summary-card h2{font-size:14px}
+.buzz-web-analysis .buzz-analysis-result{justify-content:flex-start;gap:24px}
+.buzz-web-analysis .buzz-analysis-result strong{font-size:19px}
+.buzz-web-analysis .buzz-analysis-probs{display:flex;gap:20px;border-top:1px solid #eadfcf;padding-top:12px}
+.buzz-web-analysis .buzz-analysis-probs>div{display:flex;flex-direction:column;background:none;padding:0;gap:3px;font-size:11px}
+.buzz-web-analysis .buzz-analysis-meta{display:flex;flex-wrap:nowrap;gap:0;margin-top:12px;padding-top:12px;border-top:1px solid #eadfcf}
+.buzz-web-analysis .buzz-analysis-meta span{flex:1;background:none;border:0;padding:0;font-size:10px;color:#8a949e;white-space:nowrap}
+.buzz-web-analysis .buzz-analysis-meta b{display:block;margin-top:3px;font-size:12px;font-weight:800;color:#102238;white-space:nowrap}
+.buzz-web-analysis .buzz-analysis-conclusion{background:none;border-radius:0;border-top:1px solid #eadfcf;padding:12px 0 0;color:#718096;font-size:11px}
+.buzz-web-analysis .buzz-analysis-conclusion.danger{background:none;color:#ff465b}
+.buzz-web-analysis .buzz-week-chart{height:110px}
+.buzz-web-analysis .buzz-week-chart>div>span{max-width:22px;background:#ffc533}
+.buzz-web-analysis .buzz-analysis-entry .buzz-primary-btn{width:auto;min-height:0;height:auto;border:1px solid #e4d2b8;border-radius:10px;background:#fffaf1;color:#102238;padding:8px 12px;font-size:11px;box-shadow:none}
+.buzz-web-analysis .buzz-tech-detail.buzz-portfolio-tech{display:grid;grid-template-columns:1fr;gap:14px;background:transparent!important;border:0!important;padding:0;box-shadow:none}
+.buzz-web-analysis .buzz-tech-detail .buzz-tech-block{background:#fff!important;border:1px solid #eadfcf!important;border-radius:16px!important;padding:14px!important;margin:0!important}
+.buzz-web-analysis .buzz-tech-title{align-items:flex-start}
+.buzz-web-analysis .buzz-tech-title small{font-size:10px;font-weight:400}
+.buzz-web-analysis .buzz-tech-detail .buzz-help-pill{display:none}
+.buzz-web-analysis .buzz-wave-chart,.buzz-web-analysis .buzz-fft-detailed .buzz-fft-plot{height:90px!important;background:#102238!important;border:0!important;border-radius:10px;padding:6px}
+.buzz-web-analysis .buzz-wave-chart i{transform:none!important;background:#ffc533!important}
+.buzz-web-analysis .buzz-wave-zero{background:#ffffff20!important}
+.buzz-web-analysis .buzz-fft-chart{background:none;padding:0}
+.buzz-web-analysis .buzz-axis-y.fft{display:none}
+.buzz-web-analysis .buzz-fft-plot i{background:linear-gradient(#ffc533,#e7a300)!important}
+.buzz-web-analysis .buzz-tech-detail .buzz-analysis-insight{background:none!important;padding:0;color:#718096!important;font-size:10px;line-height:1.6}
+.buzz-web-analysis .buzz-tech-detail .buzz-analysis-insight.strong b{color:#102238!important}
+.buzz-web-analysis .buzz-spectrogram-large{grid-template-rows:130px 22px!important}
+.buzz-web-analysis .buzz-mfcc-grid{height:90px!important}
+.buzz-web-analysis .buzz-time-axis,.buzz-web-analysis .buzz-fft-axis{font-size:9px}
+@media(min-width:700px){.buzz-web-analysis .buzz-tech-detail.buzz-portfolio-tech{grid-template-columns:1fr 1fr}}
+
+/* 감지 이력 - 웹과 같은 통계 카드, 필터, 행 목록 */
+.buzz-web-history .buzz-history-summary{gap:8px;margin-bottom:18px}
+.buzz-web-history .buzz-history-summary>div{display:grid;grid-template-columns:24px 1fr;column-gap:6px;align-items:center;text-align:left;background:#fff;border:1px solid #eadfcf;border-radius:14px;padding:12px 8px}
+.buzz-web-history .buzz-history-summary>div:before{content:'◷';grid-row:1 / 3;display:grid;place-items:center;width:24px;height:28px;background:#fff0bf;border-radius:8px;color:#d99b00}
+.buzz-web-history .buzz-history-summary>div.danger:before{content:'⚠';background:#fff0ed;color:#ff465b}
+.buzz-web-history .buzz-history-summary>div:last-child:before{content:'↕';background:#e7f8ed;color:#23ad65}
+.buzz-web-history .buzz-history-summary span{font-size:9px;white-space:nowrap}
+.buzz-web-history .buzz-history-summary b{font-size:18px;color:#102238}
+.buzz-web-history .buzz-history-filters{gap:8px;margin-bottom:14px}
+.buzz-web-history .buzz-history-filters button{border-radius:10px;font-size:11px;padding:7px 12px}
+.buzz-web-history .buzz-history-event-badge{display:inline-block;margin-right:6px;padding:3px 6px;border-radius:999px;font-size:9px;font-weight:700;background:#eaf0ff;color:#5079e7}
+.buzz-web-history .buzz-history-event-badge.danger{background:#fff0ed;color:#ff465b}
+.buzz-web-history .buzz-history-pagination{background:#fff;border:1px solid #eadfcf;border-radius:16px;margin:0 0 14px;padding:12px}
+.buzz-web-history .buzz-history-pagination button{background:#fff;border-radius:9px;font-weight:500}
+.buzz-web-history .buzz-history-pagination button.active{background:#fff;color:#102238;border-color:#d9b779}
+.buzz-web-history .buzz-history-tip{font-size:10px;line-height:1.6;color:#718096}
+
+/* 감지 이력 - 카드형 목록 (HistoryPageV2) */
+.buzz-web-history .buzz-history-only-list{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+
+.buzz-web-history .buzz-history-only-card{
+  width:100%;
+  display:block;
+  text-align:left;
+  background:#fff;
+  border:1px solid #eadfcf;
+  border-radius:16px;
+  padding:14px;
+  box-shadow:0 6px 16px rgba(41,49,58,.04);
+  transition:background .15s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.buzz-web-history .buzz-history-only-card:hover{background:#fffaf1}
+.buzz-web-history .buzz-history-only-card:active{background:#fff7e2}
+.buzz-web-history .buzz-history-only-card:focus-visible{outline:2px solid #ffc533;outline-offset:2px}
+
+.buzz-web-history .buzz-history-only-top{display:flex;align-items:center;gap:8px}
+
+.buzz-web-history .buzz-history-only-time{display:flex;align-items:baseline;gap:6px;flex:none;min-width:0}
+.buzz-web-history .buzz-history-only-time strong{font-size:12.5px;font-weight:800;color:#102238;white-space:nowrap}
+.buzz-web-history .buzz-history-only-time span{font-size:9px;color:#8a949e;white-space:nowrap}
+
+.buzz-web-history .buzz-history-only-top .buzz-history-event-badge{flex:none;margin-right:0;margin-left:auto}
+
+.buzz-web-history .buzz-history-only-arrow{flex:none;font-size:15px;color:#c2ccd6}
+
+.buzz-web-history .buzz-history-only-title-text{display:block;margin-top:10px;font-size:14px;font-weight:800;color:#102238;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.buzz-web-history .buzz-history-only-info{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid #f3ece0;
+}
+.buzz-web-history .buzz-history-only-info>div{display:flex;align-items:center;gap:8px;min-width:0}
+.buzz-web-history .buzz-history-only-info p{display:flex;flex-direction:column;gap:1px;min-width:0}
+.buzz-web-history .buzz-history-only-info small{font-size:8px;color:#8a949e}
+.buzz-web-history .buzz-history-only-info b{font-size:11px;font-weight:800;color:#102238;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.buzz-web-history .buzz-history-only-icon,
+.buzz-web-history .buzz-history-only-door{
+  flex:none;
+  display:grid;
+  place-items:center;
+  width:24px;height:24px;
+  border-radius:8px;
+  font-size:10px;
+  font-style:normal;
+  line-height:1;
+}
+.buzz-web-history .buzz-history-only-icon{background:#fff0bf;color:#d99b00}
+.buzz-web-history .buzz-history-only-door{background:#eaf0ff;color:#5079e7;transform:rotate(90deg)}
+.buzz-web-history .buzz-history-only-door.open{background:#e7f8ed;color:#23ad65}
+
+.buzz-web-history .buzz-history-only-empty{
+  text-align:center;
+  padding:36px 12px;
+  color:#8a949e;
+  font-size:11px;
+  background:#fff;
+  border:1px dashed #eadfcf;
+  border-radius:16px;
+}
+
+@media(max-width:390px){
+  .buzz-web-history .buzz-history-only-card{padding:12px}
+  .buzz-web-history .buzz-history-only-info{gap:6px}
+}

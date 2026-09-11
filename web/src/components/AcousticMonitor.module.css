@@ -1,0 +1,12 @@
+/* 음향 모니터링 - 웹 음향 패널과 영상 전환 스타일 */
+.monitor{min-width:0;padding:16px 20px;border-right:1px solid var(--border)}
+.heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.heading h2{font-size:14px;margin:0;color:var(--text-primary)}
+.heading span,.note{font-size:11px;color:var(--text-muted)}
+.switch{display:flex;gap:4px;padding:3px;background:#f2f4f6;border-radius:24px;width:fit-content;margin-bottom:10px}
+.switch button{border:0;border-radius:20px;padding:6px 16px;background:transparent;font-size:12px;font-weight:700;color:var(--text-secondary);cursor:pointer}
+.switch button[aria-pressed=true]{background:#102a43;color:#fff}
+.monitor video{display:block;width:min(100%,480px);aspect-ratio:16/9;height:auto;object-fit:contain;margin:0 auto;background:#102238;border-radius:8px}
+.detail{display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:10px;margin-top:10px;color:var(--text-primary);font-size:12px;font-weight:700;text-decoration:none}
+.switch button:focus-visible,.detail:focus-visible{outline:2px solid #f7b500;outline-offset:3px}
+@media(max-width:1100px){.monitor{border-right:0;border-bottom:1px solid var(--border)}}

@@ -1,264 +1,193 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import BottomNav from "./BottomNav";
-import { BuzzMark } from "./Logo";
-import { useSiteStatuses } from "../hooks/useSiteStatuses";
-import { commandDoor } from "../api/buzzApi";
-import {
-  getSelectedSiteId,
-  setSelectedSiteId as persistSelectedSiteId,
-} from "../types";
+import "./WebStylePages.css";
+import { getLatestDetection, getRuntimeHistory, getSiteRuntimeStatus } from "../types";
 
-function DoorIcon({ open }) {
-  return open ? (
-    <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
-    </svg>
-  ) : (
-    <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
-    </svg>
-  );
+const BASE_HISTORY = [
+  { id: 1, type: "danger", site: "사업장 3", time: "14:30:25", title: "말벌 감지", result: "말벌", confidence: 97, door: "닫힘", action: "자동 폐쇄", probs: { hornet: 97, bee: 2, other: 1 }, flow: ["말벌 감지", "출입문 자동 닫힘", "사용자에게 위험 상태 표시"] },
+  { id: 2, type: "gate", site: "사업장 3", time: "14:31:02", title: "사용자 문 열기", result: "말벌", confidence: 96, door: "열림", action: "수동 개방", probs: { hornet: 96, bee: 3, other: 1 }, flow: ["말벌 감지 지속", "사용자 문 열기", "3초 후 안전 정책에 따라 자동 재폐쇄"] },
+  { id: 3, type: "danger", site: "사업장 3", time: "14:31:05", title: "자동 재폐쇄", result: "말벌", confidence: 96, door: "닫힘", action: "자동 재폐쇄", probs: { hornet: 96, bee: 3, other: 1 }, flow: ["사용자 문 열기", "말벌 감지 지속", "자동 재폐쇄 완료"] },
+  { id: 4, type: "gate", site: "사업장 2", time: "11:05:12", title: "사용자 문 닫기", result: "꿀벌", confidence: 91, door: "닫힘", action: "수동 폐쇄", probs: { hornet: 4, bee: 91, other: 5 }, flow: ["사용자 제어", "출입문 닫힘", "수동 상태 저장"] },
+];
+
+const FILTERS = [["all", "전체"], ["danger", "위험"], ["gate", "문 제어"]];
+const HISTORY_OVERVIEW = { total: 24, danger: 8, door: 3 };
+
+function getBinaryProbs(item) {
+  const probs = item?.probs || {};
+  const confidence = Number(item?.confidence) || 0;
+  const wasp = typeof probs.wasp === "number"
+    ? probs.wasp
+    : typeof probs.hornet === "number"
+      ? probs.hornet
+      : item?.result === "말벌" ? confidence : Math.max(0, 100 - confidence);
+
+  const nonWasp = typeof probs.nonWasp === "number"
+    ? probs.nonWasp
+    : (typeof probs.bee === "number" || typeof probs.other === "number")
+      ? (probs.bee || 0) + (probs.other || 0)
+      : Math.max(0, 100 - wasp);
+
+  return { wasp, nonWasp };
 }
 
-function BeeMascot({ danger = false }) {
+function EventDetail({ item, onClose, onAnalysis }) {
+  if (!item) return null;
+  const danger = item.type === "danger" || item.result === "말벌";
+  const binaryProbs = getBinaryProbs(item);
+
   return (
-    <div className={`buzz-mascot ${danger ? "is-danger" : ""}`} aria-hidden="true">
-      <span className="buzz-wing buzz-wing-left" />
-      <span className="buzz-wing buzz-wing-right" />
-      <span className="buzz-ant buzz-ant-left" />
-      <span className="buzz-ant buzz-ant-right" />
-      <span className="buzz-eye buzz-eye-left" />
-      <span className="buzz-eye buzz-eye-right" />
-      <span className="buzz-mouth" />
+    <div className="buzz-detail-overlay" onClick={onClose}>
+      <div className="buzz-history-detail buzz-history-detail-full" onClick={(e) => e.stopPropagation()}>
+        <div className="buzz-history-detail-head buzz-history-detail-appbar">
+          <div>
+            <p className="buzz-kicker">이력 상세</p>
+            <h2>{item.title}</h2>
+            <span>{item.site} · {item.time}</span>
+          </div>
+          <button type="button" onClick={onClose} aria-label="닫기">×</button>
+        </div>
+
+        <p className="buzz-history-detail-intro">감지 당시의 AI 판정과 문 상태를 한 화면에서 확인할 수 있습니다.</p>
+
+        <div className={`buzz-detail-status ${danger ? "danger" : "normal"}`}>
+          <div><span>AI 판정</span><b>{item.result}</b></div>
+          <strong>{item.confidence}%</strong>
+        </div>
+
+        <div className="buzz-detail-grid">
+          <div><span>당시 문 상태</span><b>{item.door}</b></div>
+          <div><span>문 동작</span><b>{item.action}</b></div>
+          <div><span>감지 시각</span><b>{item.time}</b></div>
+          <div><span>사업장</span><b>{item.site}</b></div>
+        </div>
+
+        <div className="buzz-detail-section">
+          <h3>클래스별 신뢰도</h3>
+          {[["말벌", binaryProbs.wasp], ["말벌 아님", binaryProbs.nonWasp]].map(([label, value]) => (
+            <div className="buzz-history-prob" key={label}>
+              <span>{label}</span>
+              <div><i className={label === "말벌" ? "danger" : ""} style={{ width: `${value}%` }} /></div>
+              <b>{value}%</b>
+            </div>
+          ))}
+        </div>
+
+        <button type="button" className="buzz-history-analysis-link" onClick={onAnalysis}>
+          관련 AI 분석 상세 보기 <span>›</span>
+        </button>
+      </div>
     </div>
   );
 }
 
-export default function HomePage({ setPage, onOpenSite }) {
-  const { sites, setSites, error: monitoringError } = useSiteStatuses();
-  const [selectedSiteId, setSelectedSiteId] = useState(getSelectedSiteId);
-  const [siteMenu, setSiteMenu] = useState(false);
-  const [now, setNow] = useState(new Date());
-  const [doorOpen, setDoorOpen] = useState(true);
-  const [doorControlPending, setDoorControlPending] = useState(false);
-  const [toast, setToast] = useState("");
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [alertsAcknowledged, setAlertsAcknowledged] = useState(false);
+export default function HistoryPage({ setPage }) {
+  const [filter, setFilter] = useState("all");
+  const [selected, setSelected] = useState(null);
+  const [historyPage, setHistoryPage] = useState(1);
 
-  const selectedSite = useMemo(
-    () => sites.find((site) => site.id === selectedSiteId) ?? sites[0],
-    [sites, selectedSiteId]
-  );
-  const danger = selectedSite?.status === "danger";
-  const dangerSites = useMemo(() => sites.filter((site) => site.status === "danger"), [sites]);
-  const waspProbability = selectedSite?.probabilities?.wasp ?? 0;
-  const nonWaspProbability = selectedSite?.probabilities?.nonWasp ?? 0;
-  const waspDetected = selectedSite?.insect === "wasps";
-  const ai = { primary: "말벌 확률", primaryValue: waspProbability, nonWasp: nonWaspProbability };
+  const latest = getLatestDetection();
+  const site3Danger = getSiteRuntimeStatus(3) === "danger";
 
-  useEffect(() => {
-    if (dangerSites.length > 0) {
-      setAlertOpen(true);
-      setAlertsAcknowledged(false);
-    } else {
-      setAlertOpen(false);
-    }
-  }, [dangerSites.length]);
+  const history = useMemo(() => {
+    const runtimeHistory = getRuntimeHistory();
+    return Array.isArray(runtimeHistory) && runtimeHistory.length > 0 ? runtimeHistory : BASE_HISTORY;
+  }, [site3Danger, latest?.time]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setNow(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    setDoorOpen(selectedSite?.door !== "closed");
-  }, [selectedSiteId, selectedSite?.door]);
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(""), 3300);
-    return () => clearTimeout(t);
-  }, [toast]);
-
-  const operateDoor = async () => {
-    if (!selectedSite || doorControlPending) return;
-    const action = doorOpen ? "close" : "open";
-    setDoorControlPending(true);
-    try {
-      const response = await commandDoor(selectedSite.id, action);
-      const open = response.door_status === "OPEN";
-      setDoorOpen(open);
-      setSites((previous) => previous.map((site) => site.id === selectedSite.id
-        ? { ...site, door: response.door_status.toLowerCase(), status: response.status.toLowerCase() }
-        : site));
-      setToast(`출입문을 ${open ? "열었습니다" : "닫았습니다"}.`);
-    } catch (error) {
-      setToast(error.message || "출입문을 제어하지 못했습니다.");
-    } finally {
-      setDoorControlPending(false);
-    }
-  };
-
-  const switchSite = (id) => {
-    setSelectedSiteId(id);
-    persistSelectedSiteId(id);
-    setSiteMenu(false);
-  };
+  const filtered = history.filter((item) => filter === "all" || item.type === filter);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / 10));
+  const currentPage = Math.min(historyPage, pageCount);
+  const pageItems = filtered.slice((currentPage - 1) * 10, currentPage * 10);
 
   return (
     <div className="buzz-commercial-page">
-      <header className="buzz-topbar">
-        <div className="buzz-brand">
-          <BuzzMark size={30} />
-          <span>BUZZ</span>
-        </div>
-
-        <button className="buzz-site-picker" onClick={() => setSiteMenu((v) => !v)}>
-          <span>{selectedSite.name}</span>
-          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-
-        <button
-          className={`buzz-icon-button buzz-alert-button ${dangerSites.length > 0 ? "danger" : ""}`}
-          aria-label={`위험 알림 ${dangerSites.length}건`}
-          aria-expanded={alertOpen}
-          onClick={() => {
-            setAlertsAcknowledged(true);
-            setAlertOpen((open) => !open);
-          }}
-        >
-          <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9a6 6 0 10-12 0v.75a8.967 8.967 0 01-2.312 6.022 23.857 23.857 0 005.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
-          </svg>
-          {dangerSites.length > 0 && !alertsAcknowledged && <i>{dangerSites.length}</i>}
-        </button>
-
-        {siteMenu && (
-          <div className="buzz-site-menu">
-            {sites.map((site) => (
-              <button key={site.id} onClick={() => switchSite(site.id)}>
-                <span className={`buzz-dot ${site.status === "danger" ? "danger" : ""}`} />
-                <span className="flex-1 text-left">
-                  <b>{site.name}</b>
-                  <small>{site.status === "danger" ? "위험" : "정상"}</small>
-                </span>
-                {selectedSiteId === site.id && <span className="text-amber-500 font-black">✓</span>}
-              </button>
-            ))}
-          </div>
-        )}
-      </header>
-
-      {dangerSites.length > 0 && alertOpen && (
-        <section className="buzz-mobile-alert" role="alert">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9a6 6 0 10-12 0v.75a8.967 8.967 0 01-2.312 6.022 23.857 23.857 0 005.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
-          </svg>
+      <main className="buzz-commercial-content buzz-history-page buzz-web-history">
+        <div className="buzz-page-heading buzz-history-heading">
           <div>
-            {dangerSites.map((site) => (
-              <p key={site.id}><b>{site.name}</b><span>말벌 {site.confidence ?? 97}% · 출입문 닫힘</span></p>
-            ))}
+            <h1>감지 이력</h1>
+            <p className="buzz-page-desc">위험 감지와 출입문 동작을 확인하세요.</p>
           </div>
-          <button onClick={() => { setAlertsAcknowledged(true); setAlertOpen(false); }} aria-label="알림 닫기">×</button>
-        </section>
-      )}
-
-      <main className="buzz-commercial-content">
-        <div className={`buzz-system-strip ${danger ? "danger" : ""}`}>
-          <span className="buzz-dot" />
-          <b>{monitoringError ? "서버 연결 지연" : danger ? "위험 감지" : "시스템 정상"}</b>
-          <span>{monitoringError ? "마지막 수신 상태 표시 중" : selectedSite.name}</span>
         </div>
 
-        <section className={`buzz-status-summary ${danger ? "danger" : ""}`}>
-          <div className="buzz-status-symbol">
-            {danger ? "!" : "✓"}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="buzz-kicker">현재 상태</p>
-            <h1>{danger ? "말벌 침입 감지" : "정상 감시 중"}</h1>
-            <p>{danger ? "말벌이 감지되어 출입문을 자동으로 닫았습니다." : "현재 양봉장은 안전합니다."}</p>
-            <small>마지막 분석 {selectedSite?.lastAnalyzedAt ?? "분석 대기 중"}</small>
-          </div>
-          <BeeMascot danger={danger} />
+        <section className="buzz-history-summary">
+          <div><span>전체 이벤트</span><b>{HISTORY_OVERVIEW.total}</b></div>
+          <div className="danger"><span>위험</span><b>{HISTORY_OVERVIEW.danger}</b></div>
+          <div><span>문 제어</span><b>{HISTORY_OVERVIEW.door}</b></div>
         </section>
 
-        <section className={`buzz-video-panel ${danger ? "danger" : ""}`}>
-          <video
-            key={`${selectedSiteId}-${danger ? "danger" : "normal"}`}
-            src={`/videos/site-${selectedSiteId}.mp4`}
-            poster={danger ? "/images/wasp.jpg" : "/images/honeybee.jpg"}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-          />
-          <div className="buzz-video-shade" />
-          <div className="buzz-video-top">
-            <span className="buzz-live-dot-only" aria-label="영상 재생 중"><i /></span>
-            <span className="buzz-current-time">
-              {now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false })}
-            </span>
-          </div>
-          <div className={`buzz-video-caption ${danger ? "danger" : ""}`}>
-            {danger ? "말벌 감지 상태" : "꿀벌 영상 반복 재생"}
-          </div>
-        </section>
+        <div className="buzz-history-filters">
+          {FILTERS.map(([key, label]) => (
+            <button type="button" key={key} className={filter === key ? "active" : ""} onClick={() => {
+              setFilter(key);
+              setHistoryPage(1);
+            }}>
+              {label}
+            </button>
+          ))}
+        </div>
 
-        <section className={`buzz-card buzz-ai-card buzz-ai-compact ${danger ? "danger" : ""} ${waspDetected ? "prediction-danger" : ""}`}>
-          <div className="buzz-ai-compact-main">
-            <div>
-              <p className="buzz-kicker">AI 판정</p>
-              <div className="buzz-ai-line">
-                <BeeMascot danger={waspDetected} />
-                <b>{ai.primary}</b>
-                <strong>{ai.primaryValue}%</strong>
+        <div className="buzz-history-only-list">
+          {pageItems.map((item) => (
+            <button
+              type="button"
+              className="buzz-history-only-card"
+              key={item.id}
+              onClick={() => setSelected(item)}
+            >
+              <div className="buzz-history-only-top">
+                <div className="buzz-history-only-time">
+                  <strong>{item.time}</strong>
+                  <span>{item.site}</span>
+                </div>
+
+                <span className={`buzz-history-event-badge ${item.type === "danger" ? "danger" : ""}`}>
+                  {item.type === "danger" ? "위험" : "문 제어"}
+                </span>
+
+                <span className="buzz-history-only-arrow">›</span>
               </div>
-            </div>
-            <span className={`buzz-status-chip ${danger ? "danger" : ""}`}>{danger ? "위험" : "정상"}</span>
-          </div>
-          <div className="buzz-ai-mini-row">
-            <span>안전 확률 {ai.nonWasp}%</span>
-          </div>
-        </section>
 
-        <section className={`buzz-card buzz-door-card ${danger ? "danger" : ""}`}>
-          <div className="buzz-door-row">
-            <div className={`buzz-door-symbol ${doorOpen ? "open" : "closed"}`}>
-              <DoorIcon open={doorOpen} />
-            </div>
-            <div className="flex-1">
-              <p className="buzz-kicker">문 상태</p>
-              <h2>{doorOpen ? "열림" : "닫힘"}</h2>
-              <small>{danger ? "자동 보호 모드 적용 중" : "수동 제어 가능"}</small>
-            </div>
-          </div>
+              <b className="buzz-history-only-title-text">{item.title}</b>
 
-          <button className={`buzz-door-action ${danger && !doorOpen ? "danger" : ""}`} onClick={operateDoor} disabled={doorControlPending}>
-            <DoorIcon open={!doorOpen} />
-            {doorControlPending ? "처리 중..." : doorOpen ? "문 닫기" : "문 열기"}
-          </button>
+              <div className="buzz-history-only-info">
+                <div>
+                  <span className="buzz-history-only-icon">◉</span>
+                  <p><small>AI 판정</small><b>{item.result} {item.confidence}%</b></p>
+                </div>
+                <div>
+                  <span className={`buzz-history-only-door ${item.door === "열림" ? "open" : ""}`}>▯</span>
+                  <p><small>문 상태</small><b>{item.door}</b></p>
+                </div>
+              </div>
+            </button>
+          ))}
 
-          <p className="buzz-door-note">
-            ⓘ {danger
-              ? "문을 열어도 위험 상태는 유지되며, 3회 연속 미탐지 시 정상으로 복귀합니다."
-              : "위험 감지 시 출입문이 자동으로 닫힙니다."}
-          </p>
-        </section>
+          {pageItems.length === 0 && <div className="buzz-history-only-empty">표시할 이력이 없습니다.</div>}
+        </div>
 
-        <button className="buzz-wide-link buzz-wide-link-compact" onClick={() => setPage("site")}>
-          <span>전체 사업장 보기</span>
-          <span>3개 사업장 ›</span>
-        </button>
-</main>
+        <div className="buzz-history-pagination">
+          <button type="button" disabled={currentPage === 1} onClick={() => setHistoryPage((v) => Math.max(1, v - 1))}>‹</button>
+          {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 10).map((number) => (
+            <button type="button" key={number} className={number === currentPage ? "active" : ""} onClick={() => setHistoryPage(number)}>
+              {number}
+            </button>
+          ))}
+          <button type="button" disabled={currentPage === pageCount} onClick={() => setHistoryPage((v) => Math.min(pageCount, v + 1))}>›</button>
+        </div>
 
-      {toast && <div className="buzz-toast">{toast}</div>}
-      <BottomNav currentPage="home" setPage={setPage} />
+        <p className="buzz-history-tip">항목을 누르면 당시 AI 판정과 문 상태를 자세히 볼 수 있습니다.</p>
+      </main>
+
+      <EventDetail
+        item={selected}
+        onClose={() => setSelected(null)}
+        onAnalysis={() => {
+          setSelected(null);
+          setPage("analysis");
+        }}
+      />
+
+      <BottomNav currentPage="history" setPage={setPage} />
     </div>
   );
 }

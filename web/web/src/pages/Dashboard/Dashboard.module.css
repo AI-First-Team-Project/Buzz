@@ -1,0 +1,408 @@
+/* 대시보드 - 사업장 현황 요약 스타일 */
+.siteSelect {
+  border: 1px solid var(--border-strong);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.headerActions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.alertBell {
+  position: relative;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid #ffd2ca;
+  border-radius: 12px;
+  background: #fff4f1;
+  color: var(--danger);
+  cursor: pointer;
+}
+
+.alertBell i {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  padding: 0 4px;
+  border: 2px solid var(--app-bg);
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.bellAlert {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 340px;
+  margin: 0;
+  padding: 11px 14px;
+  border: 1px solid #ffd2ca;
+  border-radius: 12px;
+  background: #fff5f2;
+  color: var(--danger-strong);
+  font-size: 12px;
+}
+
+.bellAlert span {
+  flex: 1;
+}
+
+.bellAlert button {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--danger-strong);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.alertSpacer {
+  height: 64px;
+}
+
+.statRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 2px;
+}
+
+.statusSummary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 96px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(120deg, var(--card-bg), var(--success-tint));
+  box-shadow: var(--shadow-card);
+  padding: 16px 18px;
+  margin-bottom: 18px;
+}
+
+.statusSummaryDanger {
+  background: linear-gradient(120deg, var(--card-bg), var(--danger-tint));
+  border-color: #ffd4cd;
+}
+
+.statusSummary > :last-child {
+  display: block;
+  margin-left: auto;
+  transform: scale(1.05);
+  transform-origin: center;
+}
+
+.statusSymbol {
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  background: var(--success-tint);
+  color: var(--success);
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 900;
+  flex: none;
+}
+
+.statusSymbolDanger {
+  background: var(--danger-tint);
+  color: var(--danger);
+}
+
+.statusBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.statusTitle {
+  font-size: 21px;
+  line-height: 1.2;
+  margin: 2px 0 4px;
+  color: var(--text-primary);
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+
+.statusDesc {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 0 0 4px;
+}
+
+.statusMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.monitorCard {
+  display: grid;
+  grid-template-columns: 1.75fr 1fr;
+  gap: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.monitorVideo {
+  position: relative;
+  min-height: 400px;
+  background: #10141c;
+}
+
+.monitorScene {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  object-fit: cover;
+}
+
+.monitorLabel {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.monitorTimestamp {
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  color: #fff;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.monitorInfo {
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+}
+
+.confidenceRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.confidenceLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.confidenceValue {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--danger);
+}
+
+.confidenceBarTrack {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--danger-tint);
+  overflow: hidden;
+}
+
+.confidenceBarFill {
+  height: 100%;
+  background: var(--danger);
+  border-radius: 999px;
+}
+
+.doorControl { border-top: 1px solid var(--border); padding-top: 18px; }
+.doorState { display: flex; align-items: center; gap: 12px; }
+.doorState > div { flex: 1; }
+.doorState strong { display: block; font-size: 22px; color: var(--text-primary); margin: 3px 0; }
+.doorState small, .doorCaption { font-size: 12px; color: var(--text-muted); }
+.doorSymbol { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: #fff0be; color: #cc8a00; }
+.doorSymbolClosed { background: #ffe4dd; color: #df4645; }
+.doorAction { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; min-height: 48px; margin-top: 18px; border: none; border-radius: 14px; background: #17263a; color: white; font-size: 15px; font-weight: 700; cursor: pointer; transition: filter .15s; }
+.doorActionDanger { background: #ef4a49; }
+.doorAction:hover { filter: brightness(1.1); }
+.doorAction:focus-visible { outline: 3px solid var(--brand-yellow); outline-offset: 3px; }
+.doorNote { font-size: 12px; line-height: 1.6; color: var(--text-muted); margin: 10px 0 0; }
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.siteGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.siteCard {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.siteCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand-yellow-dark);
+  box-shadow: 0 10px 22px rgba(41, 49, 58, 0.1);
+}
+
+.siteCardDanger {
+  border-color: var(--danger);
+}
+
+:global(body):has([class*='siteSelect'] option[value='site-1']:checked) .siteGrid > :nth-child(1),
+:global(body):has([class*='siteSelect'] option[value='site-2']:checked) .siteGrid > :nth-child(2),
+:global(body):has([class*='siteSelect'] option[value='site-3']:checked) .siteGrid > :nth-child(3) {
+  background: #fffdf5;
+  border-color: var(--brand-yellow-dark);
+  box-shadow: 0 0 0 2px var(--brand-yellow-tint), 0 10px 22px rgba(41, 49, 58, 0.1);
+}
+
+.siteCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.siteCardMeta {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.siteCardDoor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.eventList {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.siteGrid + .sectionTitle,
+.siteGrid + .sectionTitle + .eventList {
+  display: none;
+}
+
+.eventRow {
+  display: grid;
+  grid-template-columns: 90px 100px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.eventRow:last-child {
+  border-bottom: none;
+}
+
+.eventTime {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.eventSite {
+  color: var(--text-secondary);
+}
+
+.eventLabel {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+@media (max-width: 1100px) {
+  .statRow,
+  .siteGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .monitorCard {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-height: 900px) and (min-width: 901px) {
+  .statRow { margin-bottom: 12px; }
+  .statusSummary { min-height: 90px; padding: 14px 16px; margin-bottom: 12px; }
+  .statusSymbol { width: 43px; height: 43px; border-radius: 14px; font-size: 20px; }
+  .statusTitle { font-size: 20px; margin: 1px 0 3px; }
+  .statusDesc { margin-bottom: 3px; }
+  .alertBanner { min-height: 36px; padding: 0 14px; margin-bottom: 12px; }
+  .monitorCard { margin-bottom: 14px; }
+  .monitorVideo { min-height: 380px; }
+  .monitorInfo { padding: 18px 20px; gap: 14px; }
+  .confidenceValue { font-size: 25px; }
+  .doorControl { padding-top: 14px; }
+  .doorSymbol { width: 48px; height: 48px; border-radius: 15px; }
+  .doorState strong { font-size: 20px; }
+  .doorAction { min-height: 44px; margin-top: 13px; font-size: 14px; }
+  .doorNote { margin-top: 8px; font-size: 11.5px; }
+  .sectionTitle { margin-bottom: 9px; }
+  .siteGrid { margin-bottom: 14px; gap: 12px; }
+  .siteCard { padding: 13px 15px; }
+  .siteCardHead { margin-bottom: 6px; }
+  .siteCardMeta { margin-bottom: 4px; }
+}
