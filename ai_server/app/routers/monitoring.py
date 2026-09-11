@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query
 
 from ..config import WORKER_STALE_AFTER_SECONDS
+from ..database import list_detection_events, safe_update_gate_status
 from ..schemas import DoorCommand, HistoryItem, SiteStatusResponse
 from ..store import get_site, list_history, list_sites, set_door
 
@@ -47,6 +48,22 @@ def history(limit: int = Query(default=100, ge=1, le=500)):
 @router.post("/door/{site_id}", response_model=SiteStatusResponse)
 def door(site_id: int, command: DoorCommand):
     try:
-        return _with_worker_status(set_door(site_id, command.action))
+        result = _with_worker_status(set_door(site_id, command.action))
+        safe_update_gate_status(site_id, command.action)
+        return result
     except KeyError:
         raise HTTPException(status_code=404, detail="사업장을 찾을 수 없습니다.")
+
+
+@router.get("/analysis-logs")
+def analysis_logs(
+    limit: int = Query(default=100, ge=1, le=500),
+    analysis_type: str | None = Query(default=None),
+):
+    """MySQL에 저장된 live/test/simulation 분석 로그를 조회한다."""
+    if analysis_type not in {None, "live", "test", "simulation"}:
+        raise HTTPException(status_code=400, detail="analysis_type은 live, test, simulation 중 하나여야 합니다.")
+    try:
+        return list_detection_events(limit=limit, analysis_type=analysis_type)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"MySQL 로그 조회 실패: {exc}") from exc

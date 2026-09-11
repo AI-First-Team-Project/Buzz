@@ -6,6 +6,7 @@ from uuid import uuid4
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from ..config import ALLOWED_EXTENSIONS, MAX_UPLOAD_BYTES, UPLOAD_DIR
+from ..database import safe_save_detection_result
 from ..latest_analysis_store import (
     cache_latest_visualization,
     get_latest_analysis_source,
@@ -49,11 +50,24 @@ def _save_upload(file: UploadFile) -> Path:
 
 
 @router.post("/test/analyze", response_model=AnalysisResponse)
-async def test_analyze(file: UploadFile = File(...)):
-    """사용자 테스트 전용. 자동 감지 상태/문/이력에는 영향을 주지 않는다."""
+async def test_analyze(
+    file: UploadFile = File(...),
+    expected_label: str | None = Form(default=None),
+):
+    """사용자 테스트 전용. 결과는 MySQL에 test 로그로 저장한다."""
+    if expected_label not in {None, "wasp", "non_wasp"}:
+        raise HTTPException(status_code=400, detail="expected_label은 wasp 또는 non_wasp만 가능합니다.")
     try:
         named_path = _save_upload(file)
-        return analyze_audio(named_path, "user_test", file.filename)
+        result = analyze_audio(named_path, "user_test", file.filename)
+        safe_save_detection_result(
+            site_id=None,
+            file_path=named_path,
+            result=result,
+            analysis_type="test",
+            expected_label=expected_label,
+        )
+        return result
     except HTTPException:
         raise
     except Exception as exc:
@@ -76,6 +90,12 @@ async def auto_analyze(
             probabilities=result.prediction.probabilities,
             timestamp=result.meta.timestamp,
             analysis_id=result.analysis_id,
+        )
+        safe_save_detection_result(
+            site_id=site_id,
+            file_path=named_path,
+            result=result,
+            analysis_type="live",
         )
         return result
     except KeyError:
@@ -114,6 +134,12 @@ async def auto_analyze_batch(
                 probabilities=result.prediction.probabilities,
                 timestamp=result.meta.timestamp,
                 analysis_id=result.analysis_id,
+            )
+            safe_save_detection_result(
+                site_id=site_id,
+                file_path=None,
+                result=result,
+                analysis_type="simulation",
             )
             set_latest_analysis_source(site_id, result, _audio_bytes(saved_audio))
             response.append(BatchAnalysisItemResponse(siteId=site_id, analysis=result))
@@ -167,6 +193,12 @@ def analyze_file_from_path(payload: AnalyzePathRequest):
             probabilities=result.prediction.probabilities,
             timestamp=result.meta.timestamp,
             analysis_id=result.analysis_id,
+        )
+        safe_save_detection_result(
+            site_id=payload.site_id,
+            file_path=audio_path,
+            result=result,
+            analysis_type="live",
         )
         return result
     except KeyError:
