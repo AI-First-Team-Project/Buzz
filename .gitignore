@@ -38,6 +38,10 @@ ai_server/static/analysis/*
 data/raw/*
 !data/raw/.gitkeep
 
+# Simulator audio is shared separately; keep only the three site folders.
+data/audio_simulator/**/*.wav
+data/audio_simulator/**/*.mp3
+
 # ---------- AI generated artifacts ----------
 # Generated datasets / features / temporary outputs
 /ai_model/audio/
@@ -100,7 +104,6 @@ desktop.ini
 
 # ---------- Logs / temp ----------
 # Temporary presentation draft
-/temp.md
 
 *.log
 *.tmp

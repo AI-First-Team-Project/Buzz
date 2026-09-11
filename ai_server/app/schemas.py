@@ -7,6 +7,7 @@ ClassName = Literal["non_wasp", "wasp"]
 SourceName = Literal["user_test", "auto_detection"]
 DoorState = Literal["OPEN", "CLOSED"]
 SystemState = Literal["NORMAL", "DANGER"]
+WorkerState = Literal["WAITING", "RUNNING", "DEGRADED"]
 
 
 class Probabilities(BaseModel):
@@ -73,6 +74,36 @@ class AnalysisResponse(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class LatestVisualizationResponse(BaseModel):
+    """실시간 분석 화면 전용 응답. 화면에서 사용하지 않는 MFCC는 제외한다."""
+
+    analysis_id: str = Field(alias="analysisId")
+    audio: AudioInfo
+    prediction: PredictionInfo
+    waveform: WaveformData
+    fft: FFTData
+    spectrogram: SpectrogramData
+    meta: AnalysisMeta
+
+    model_config = {"populate_by_name": True}
+
+
+class BatchAnalysisResult(BaseModel):
+    analysis_id: str = Field(alias="analysisId")
+    audio: AudioInfo
+    prediction: PredictionInfo
+    meta: AnalysisMeta
+
+    model_config = {"populate_by_name": True}
+
+
+class BatchAnalysisItemResponse(BaseModel):
+    site_id: int = Field(alias="siteId")
+    analysis: BatchAnalysisResult
+
+    model_config = {"populate_by_name": True}
+
+
 class SiteStatusResponse(BaseModel):
     site_id: int
     site_name: str
@@ -82,11 +113,16 @@ class SiteStatusResponse(BaseModel):
     probabilities: Probabilities
     door_status: DoorState
     last_analysis_time: datetime | None
+    latest_analysis_id: str | None
+    consecutive_wasp: int = Field(ge=0)
+    consecutive_non_wasp: int = Field(ge=0)
+    worker_status: WorkerState
+    last_analysis_age_seconds: float | None = Field(default=None, ge=0)
 
 
 class HistoryItem(BaseModel):
     id: str
-    type: Literal["danger", "gate"]
+    type: Literal["danger", "recovery", "gate"]
     site_id: int
     site_name: str
     title: str
@@ -95,6 +131,7 @@ class HistoryItem(BaseModel):
     confidence: float | None = None
     door_status: DoorState
     action: str
+    analysis_id: str | None = None
 
 
 class DoorCommand(BaseModel):

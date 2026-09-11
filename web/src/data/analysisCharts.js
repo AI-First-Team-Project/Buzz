@@ -77,3 +77,69 @@ export function heatColor(v) {
 export function mfccCells(seed) {
     return Array.from({ length: 13 * 6 }, (_, i) => 0.18 + ((i * (seed + 5)) % 10) / 12);
 }
+
+function sample(values, count) {
+    if (!values?.length)
+        return [];
+    return Array.from({ length: Math.min(count, values.length) }, (_, index) => {
+        const sourceIndex = Math.round(index * (values.length - 1) / Math.max(1, count - 1));
+        return Number(values[sourceIndex]) || 0;
+    });
+}
+
+export function waveformBarsFromAnalysis(analysis) {
+    const values = sample(analysis?.waveform?.amplitude, 42).map(Math.abs);
+    const max = Math.max(...values, 1e-6);
+    return values.map((value) => 8 + (value / max) * 88);
+}
+
+export function fftBarsFromAnalysis(analysis) {
+    const frequencies = analysis?.fft?.frequency ?? [];
+    const magnitudes = analysis?.fft?.magnitudeDb ?? [];
+    const audible = magnitudes.filter((_, index) => (frequencies[index] ?? 0) <= 4000);
+    return sample(audible, 32).map((value) => Math.max(4, Math.min(100, 100 + value)));
+}
+
+export function melCellsFromAnalysis(analysis) {
+    const matrix = analysis?.spectrogram?.db ?? [];
+    if (!matrix.length || !matrix[0]?.length)
+        return [];
+    const rows = 10;
+    const cols = 30;
+    const cells = [];
+    for (let row = 0; row < rows; row += 1) {
+        const sourceRow = Math.round(row * (matrix.length - 1) / (rows - 1));
+        for (let col = 0; col < cols; col += 1) {
+            const sourceCol = Math.round(col * (matrix[sourceRow].length - 1) / (cols - 1));
+            cells.push(Math.max(0, Math.min(1, (Number(matrix[sourceRow][sourceCol]) + 80) / 80)));
+        }
+    }
+    return cells;
+}
+
+export function mfccCellsFromAnalysis(analysis) {
+    const matrix = analysis?.mfcc?.coefficients ?? [];
+    if (!matrix.length || !matrix[0]?.length)
+        return [];
+    const values = [];
+    for (let row = 0; row < Math.min(13, matrix.length); row += 1) {
+        values.push(...sample(matrix[row], 6));
+    }
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = Math.max(max - min, 1e-6);
+    return values.map((value) => 0.18 + ((value - min) / range) * 0.8);
+}
+
+export function dominantBandFromAnalysis(analysis) {
+    const frequencies = analysis?.fft?.frequency ?? [];
+    const magnitudes = analysis?.fft?.magnitudeDb ?? [];
+    if (!frequencies.length || frequencies.length !== magnitudes.length)
+        return null;
+    let maxIndex = 0;
+    for (let index = 1; index < magnitudes.length; index += 1) {
+        if (magnitudes[index] > magnitudes[maxIndex]) maxIndex = index;
+    }
+    const hz = Number(frequencies[maxIndex]) || 0;
+    return hz >= 1000 ? `약 ${(hz / 1000).toFixed(2)} kHz` : `약 ${Math.round(hz)} Hz`;
+}

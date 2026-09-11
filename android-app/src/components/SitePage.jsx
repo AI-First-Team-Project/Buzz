@@ -1,18 +1,11 @@
 
-import { useEffect, useState } from "react";
 import BottomNav from "./BottomNav";
 import { BuzzMark } from "./Logo";
-import { getRuntimeSites, getSiteRuntimeStatus, setSelectedSiteId } from "../types";
+import { setSelectedSiteId } from "../types";
+import { useSiteStatuses } from "../hooks/useSiteStatuses";
 
 export default function SitePage({ setPage }) {
-  const [sites, setSites] = useState(() => getRuntimeSites());
-
-  useEffect(() => {
-    const refresh = () => setSites(getRuntimeSites());
-    refresh();
-    const timer = setInterval(refresh, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const { sites } = useSiteStatuses();
 
   return (
     <div className="buzz-commercial-page">
@@ -30,11 +23,11 @@ export default function SitePage({ setPage }) {
       <main className="buzz-commercial-content">
         <div className="buzz-site-summary">
           <div>
-            <b>{sites.filter((s) => getSiteRuntimeStatus(s.id) !== "danger").length}</b>
+            <b>{sites.filter((s) => s.status !== "danger").length}</b>
             <span>정상</span>
           </div>
           <div className="danger">
-            <b>{sites.filter((s) => getSiteRuntimeStatus(s.id) === "danger").length}</b>
+            <b>{sites.filter((s) => s.status === "danger").length}</b>
             <span>위험</span>
           </div>
           <small>총 {sites.length}개 사업장</small>
@@ -42,11 +35,10 @@ export default function SitePage({ setPage }) {
 
         <div className="buzz-site-grid">
           {sites.map((site) => {
-            const status = getSiteRuntimeStatus(site.id) ?? "normal";
-            const danger = status === "danger";
-            const result = danger ? "말벌" : "말벌 아님";
-            const confidence = danger ? 97 : site.id === 1 ? 95 : site.id === 2 ? 92 : 94;
-            const door = danger ? "닫힘" : "열림";
+            const danger = site.status === "danger";
+            const result = "말벌 확률";
+            const confidence = site.probabilities?.wasp ?? 0;
+            const door = site.door === "closed" ? "닫힘" : "열림";
 
             return (
               <article className={`buzz-site-overview-card ${danger ? "danger" : ""}`} key={site.id}>

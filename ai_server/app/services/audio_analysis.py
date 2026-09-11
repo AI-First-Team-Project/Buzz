@@ -65,7 +65,9 @@ def _round_list(values: np.ndarray, digits: int = 6) -> list[float]:
 
 def create_analysis_data(
     audio_path: Path,
-) -> tuple[float, WaveformData, FFTData, SpectrogramData, MFCCData]:
+    *,
+    include_mfcc: bool = True,
+) -> tuple[float, WaveformData, FFTData, SpectrogramData, MFCCData | None]:
     """Create numeric analysis data for Android-side visualization.
 
     No PNG files are created. Data sizes are bounded to keep the JSON response practical.
@@ -103,18 +105,12 @@ def create_analysis_data(
         n_mels=N_MELS,
         power=2.0,
     )
+    original_mel_cols = mel.shape[1]
     mel_db = librosa.power_to_db(mel, ref=np.max)
     mel_db = _sample_axis(mel_db, SPECTROGRAM_TIME_BINS)
 
     mel_times_full = librosa.frames_to_time(
-        np.arange(librosa.feature.melspectrogram(
-            y=y,
-            sr=sr,
-            n_fft=N_FFT,
-            hop_length=HOP_LENGTH,
-            n_mels=N_MELS,
-            power=2.0,
-        ).shape[1]),
+        np.arange(original_mel_cols),
         sr=sr,
         hop_length=HOP_LENGTH,
     )
@@ -131,7 +127,10 @@ def create_analysis_data(
         db=np.round(mel_db.astype(np.float64), 4).tolist(),
     )
 
-    # MFCC.
+    if not include_mfcc:
+        return len(y) / sr, waveform, fft, spectrogram, None
+
+    # 사용자 음원 테스트 화면에서 사용하는 MFCC.
     mfcc_values = librosa.feature.mfcc(
         y=y,
         sr=sr,

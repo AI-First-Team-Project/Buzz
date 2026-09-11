@@ -1,33 +1,6 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import BottomNav from "./BottomNav";
-import { getLatestDetection, getRuntimeHistory, getSiteRuntimeStatus } from "../types";
-
-const BASE_HISTORY = [
-  {
-    id: 1, type: "danger", site: "사업장 3", time: "14:30:25", title: "말벌 감지",
-    result: "말벌", confidence: 97, door: "닫힘", action: "자동 폐쇄",
-    probs: { hornet: 97, bee: 2, other: 1 },
-    flow: ["말벌 감지", "출입문 자동 닫힘", "사용자에게 위험 상태 표시"],
-  },
-  {
-    id: 2, type: "gate", site: "사업장 3", time: "14:31:02", title: "사용자 문 열기",
-    result: "말벌", confidence: 96, door: "열림", action: "수동 개방",
-    probs: { hornet: 96, bee: 3, other: 1 },
-    flow: ["말벌 감지 지속", "사용자 문 열기", "3초 후 안전 정책에 따라 자동 재폐쇄"],
-  },
-  {
-    id: 3, type: "danger", site: "사업장 3", time: "14:31:05", title: "자동 재폐쇄",
-    result: "말벌", confidence: 96, door: "닫힘", action: "자동 재폐쇄",
-    probs: { hornet: 96, bee: 3, other: 1 },
-    flow: ["사용자 문 열기", "말벌 감지 지속", "자동 재폐쇄 완료"],
-  },
-  {
-    id: 4, type: "gate", site: "사업장 2", time: "11:05:12", title: "사용자 문 닫기",
-    result: "꿀벌", confidence: 91, door: "닫힘", action: "수동 폐쇄",
-    probs: { hornet: 4, bee: 91, other: 5 },
-    flow: ["사용자 제어", "출입문 닫힘", "수동 상태 저장"],
-  },
-];
+import { useHistory } from "../hooks/useHistory";
 
 const FILTERS = [
   ["all", "전체"],
@@ -109,10 +82,7 @@ export default function HistoryPage({ setPage }) {
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
   const [historyPage, setHistoryPage] = useState(1);
-  const latest = getLatestDetection();
-  const site3Danger = getSiteRuntimeStatus(3) === "danger";
-
-  const history = useMemo(() => getRuntimeHistory(), [site3Danger, latest?.time]);
+  const { history, error } = useHistory();
 
   const filtered = history.filter((item) => filter === "all" || item.type === filter);
   const pageCount = Math.max(1, Math.ceil(filtered.length / 10));
@@ -144,6 +114,8 @@ export default function HistoryPage({ setPage }) {
         </div>
 
         <div className="buzz-history-list">
+          {error && history.length === 0 && <p className="buzz-history-tip">{error}</p>}
+          {!error && history.length === 0 && <p className="buzz-history-tip">저장된 이력이 없습니다.</p>}
           {pageItems.map((item) => {
             const danger = item.type === "danger";
             const gate = item.type === "gate";
