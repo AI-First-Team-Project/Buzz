@@ -1,0 +1,371 @@
+/* AI 분석 - 탐지 결과와 분류 통계 스타일 */
+.siteSelect {
+  border: 1px solid var(--border-strong);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.statRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.statRow > :last-child {
+  display: none;
+}
+
+.statRow > :nth-child(3) {
+  display: none;
+}
+
+.statRow {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 640px;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.cardTitle {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.cardDesc {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 14px;
+}
+
+.kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 2px;
+}
+
+.toggleButton {
+  border: 1px solid var(--border-strong);
+  background: var(--app-bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.toggleButton:hover {
+  filter: brightness(0.98);
+}
+
+/* AI 판정 요약 카드 */
+.summaryCard {
+  display: grid;
+  grid-template-columns: 1.25fr 1.25fr;
+  gap: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.summaryDanger {
+  border-color: var(--danger);
+}
+
+.summaryVideo {
+  position: relative;
+  min-height: 380px;
+  background: #10141c;
+}
+
+.summaryVideoEl {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  inset: 0;
+}
+
+.summaryBody {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.summaryHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summaryTitle {
+  font-size: 16px;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.statusChip {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--success-tint);
+  color: var(--success);
+}
+
+.statusChipDanger {
+  background: var(--danger-tint);
+  color: var(--danger);
+}
+
+.resultRow {
+  display: flex;
+  gap: 24px;
+}
+
+.resultRow > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.resultRow span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.resultRow strong {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.dangerText {
+  color: var(--danger) !important;
+}
+
+.probRow {
+  display: flex;
+  gap: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.probRow > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.probRow b {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.metaRow b {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.conclusion {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* 최근 7일 차트 */
+.weekChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 130px;
+  padding-top: 8px;
+}
+
+.weekBarWrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 6px;
+}
+
+.weekBarWrap small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.weekBar {
+  width: 100%;
+  max-width: 26px;
+  border-radius: 6px 6px 2px 2px;
+  background: var(--brand-yellow);
+  display: block;
+}
+
+/* 상세 결과 분석 그리드 */
+.detailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.techBlock {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 16px 18px;
+}
+
+.techTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.techTitle small {
+  font-weight: 500;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.waveSvg {
+  width: 100%;
+  height: 90px;
+  background: var(--sidebar-bg);
+  border-radius: var(--radius-sm);
+}
+
+.melSvg {
+  width: 100%;
+  height: 130px;
+  border-radius: var(--radius-sm);
+}
+
+.fftChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 90px;
+  background: var(--sidebar-bg);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+}
+
+.fftBar {
+  flex: 1;
+  background: linear-gradient(180deg, var(--brand-yellow), var(--brand-yellow-dark));
+  border-radius: 1px 1px 0 0;
+  display: block;
+}
+
+.axisRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.mfccGrid {
+  display: grid;
+  grid-template-columns: repeat(13, 1fr);
+  gap: 2px;
+  height: 90px;
+}
+
+.mfccGrid span {
+  display: block;
+  background: var(--brand-yellow-dark);
+  border-radius: 1px;
+}
+
+.insight {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 10px 0 0;
+}
+
+.insight b {
+  color: var(--text-primary);
+}
+
+@media (max-width: 900px) {
+  .grid,
+  .statRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .summaryCard,
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-height: 900px) and (min-width: 901px) {
+  .statRow { margin-bottom: 10px; }
+  .summaryCard { margin-bottom: 12px; }
+  .summaryVideo { min-height: 330px; }
+  .summaryBody { padding: 14px 18px; gap: 8px; }
+  .probRow { padding-top: 8px; }
+  .conclusion { padding-top: 7px; }
+  .card { padding: 14px 18px; margin-bottom: 12px; }
+  .weekChart { height: 96px; }
+  .cardDesc { margin-bottom: 9px; }
+  .toggleButton { padding: 7px 13px; }
+}
+
+@media (min-width: 901px) {
+  :global(body):has([class*='summaryCard']) :global([class*='content']) {
+    zoom: 0.9;
+  }
+}

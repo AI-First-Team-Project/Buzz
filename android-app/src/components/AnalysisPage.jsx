@@ -1,76 +1,86 @@
-import { useEffect, useState } from "react";
+import { getSelectedSiteId } from "../types";
+import { useMemo, useState } from "react";
 import BottomNav from "./BottomNav";
-import { fetchLatestAnalysis } from "../api/buzzApi";
-import { useSiteStatuses } from "../hooks/useSiteStatuses";
-import { MelSpectrogram, SpectrumChart, WaveformChart } from "./AudioAnalysisCharts";
+import './WebStylePages.css';
 
-const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+const SITE_DATA = {
+  1: {
+    name: "사업장 1",
+    status: "normal",
+    result: "말벌 아님",
+    confidence: 95,
+    probs: { wasp: 5, nonWasp: 95 },
+    analyzedAt: "15:38:12",
+    duration: "18.0초",
+    summary: "꿀벌 음향 패턴이 우세하며 위험 신호는 확인되지 않았습니다.",
+    dominantBand: "약 0.8~1.5 kHz",
+  },
+  2: {
+    name: "사업장 2",
+    status: "normal",
+    result: "말벌 아님",
+    confidence: 92,
+    probs: { wasp: 8, nonWasp: 92 },
+    analyzedAt: "15:39:04",
+    duration: "12.0초",
+    summary: "꿀벌 신호가 안정적으로 분류되었으며 출입문 자동 보호는 작동하지 않았습니다.",
+    dominantBand: "약 1.0~1.7 kHz",
+  },
+  3: {
+    name: "사업장 3",
+    status: "danger",
+    result: "말벌",
+    confidence: 97,
+    probs: { wasp: 97, nonWasp: 3 },
+    analyzedAt: "15:40:27",
+    duration: "15.0초",
+    summary: "말벌 특징이 강하게 검출되어 위험 상태로 판정되었고 출입문 자동 폐쇄 조건을 충족했습니다.",
+    dominantBand: "약 1.5~2.2 kHz",
+  },
+};
 
-function SiteSelector({ siteId, setSiteId, sites }) {
-  const selected = sites.find((site) => site.id === siteId);
+const DAYS = [["월",20],["화",42],["수",16],["목",63],["금",34],["토",76],["일",48]];
+const WAVE = [32,44,38,55,71,42,28,63,76,49,36,58,82,67,39,22,51,73,62,45,31,69,77,54,29,48,66,40,25,57,70,46,34,61,79,52,27,43,64,37];
+const FFT = [15,24,39,30,52,45,36,61,72,67,48,34,58,76,81,64,43,31,50,69,74,57,38,27,46,62,55,33,21,40,53,36];
+
+function SiteSelector({ siteId, setSiteId }) {
   return (
     <div className="buzz-analysis-site-selector">
-      <div>
-        <p className="buzz-kicker">분석 대상</p>
-        <b>{selected?.name ?? `사업장 ${siteId}`}</b>
-      </div>
-      <select value={siteId} onChange={(e) => setSiteId(Number(e.target.value))}>
-        {sites.map((site) => <option value={site.id} key={site.id}>{site.name}</option>)}
+      <select aria-label="분석 대상 사업장 선택" value={siteId} onChange={(e) => setSiteId(Number(e.target.value))}>
+        <option value={1}>사업장 1</option>
+        <option value={2}>사업장 2</option>
+        <option value={3}>사업장 3</option>
       </select>
     </div>
   );
 }
 
 export default function AnalysisPage({ setPage }) {
-  const { sites } = useSiteStatuses();
-  const [siteId, setSiteId] = useState(3);
+  const [siteId, setSiteId] = useState(() => { const id = getSelectedSiteId(); return SITE_DATA[id] ? id : 3; });
   const [showDetail, setShowDetail] = useState(true);
-  const [analysisBySite, setAnalysisBySite] = useState({});
-  const selectedSite = sites.find((site) => site.id === siteId) ?? sites[0];
-  const latestAnalysis = analysisBySite[siteId] ?? null;
-  const data = {
-    name: selectedSite?.name ?? `사업장 ${siteId}`,
-    status: selectedSite?.status ?? "normal",
-    result: selectedSite?.insect === "wasps" ? "말벌" : "말벌 아님",
-    confidence: selectedSite?.confidence ?? 0,
-    probs: selectedSite?.probabilities ?? { wasp: 0, nonWasp: 0 },
-    analyzedAt: selectedSite?.lastAnalyzedAt ?? "분석 대기 중",
-    duration: latestAnalysis ? `${Number(latestAnalysis.audio.duration).toFixed(1)}초` : "최신 데이터 대기",
-    summary: selectedSite?.status === "danger"
-      ? "말벌 위험 상태가 유지되고 있으며 출입문 자동 보호 규칙이 적용됩니다."
-      : "현재 사업장은 정상 상태이며 최신 음원 신호를 표시하고 있습니다.",
-  };
+  const data = SITE_DATA[siteId];
   const danger = data.status === "danger";
 
-  useEffect(() => {
-    let active = true;
-    if (!selectedSite?.latestAnalysisId) return () => { active = false; };
-    fetchLatestAnalysis(siteId)
-      .then((analysis) => {
-        if (active && analysis) setAnalysisBySite((previous) => ({ ...previous, [siteId]: analysis }));
-      })
-      .catch(() => {});
-    return () => { active = false; };
-  }, [siteId, selectedSite?.latestAnalysisId]);
+  const melCells = useMemo(() => Array.from({ length: 240 }, (_, i) => 0.16 + ((i * (siteId + 9)) % 10) / 11), [siteId]);
+  const mfccCells = useMemo(() => Array.from({ length: 84 }, (_, i) => 0.22 + ((i * (siteId + 5)) % 10) / 14), [siteId]);
 
   return (
     <div className="buzz-commercial-page">
-      <main className="buzz-commercial-content buzz-analysis-page">
+      <main className="buzz-commercial-content buzz-analysis-page buzz-web-analysis">
         <div className="buzz-page-heading">
           <h1>분석</h1>
+          <SiteSelector siteId={siteId} setSiteId={setSiteId} />
           <p className="buzz-page-desc">
             사업장별 AI 판정과 음향 특징을 비교하고, 상세 신호 분석까지 확인하세요.
           </p>
         </div>
 
-        <SiteSelector siteId={siteId} setSiteId={setSiteId} sites={sites} />
-
         <section className="buzz-metric-grid">
           <div className="buzz-metric-card">
-            <span>오늘 분석</span><strong>-</strong><small>DB 연결 후</small>
+            <span>오늘 분석</span><strong>128</strong><small>건</small>
           </div>
           <div className="buzz-metric-card danger">
-            <span>말벌 감지</span><strong>-</strong><small>DB 연결 후</small>
+            <span>말벌 감지</span><strong>{siteId === 3 ? 3 : siteId === 2 ? 1 : 0}</strong><small>건</small>
           </div>
         </section>
 
@@ -106,11 +116,9 @@ export default function AnalysisPage({ setPage }) {
         <section className="buzz-card">
           <div className="buzz-card-head">
             <div><p className="buzz-kicker">최근 7일</p><h2>말벌 감지 추이</h2></div>
-            <span className="buzz-history-pending-badge">DB 연결 후 제공</span>
           </div>
-          <div className="buzz-week-chart buzz-week-chart-pending" aria-label="최근 7일 말벌 감지 추이 DB 연결 대기">
-            {DAY_LABELS.map((label) => <div key={label}><span/><small>{label}</small></div>)}
-            <p>이력 DB 연결 후 일별 감지 건수가 표시됩니다.</p>
+          <div className="buzz-week-chart">
+            {DAYS.map(([label, h]) => <div key={label}><span style={{height:`${h}%`}}/><small>{label}</small></div>)}
           </div>
         </section>
 
@@ -118,9 +126,6 @@ export default function AnalysisPage({ setPage }) {
           <div className="buzz-card-head">
             <div><p className="buzz-kicker">신호 분석</p><h2>상세 결과 분석</h2></div>
           </div>
-          <p className="buzz-page-desc">
-            Waveplot → FFT → Mel-Spectrogram 순서로 원본 신호와 전체 주파수 특성을 확인할 수 있습니다.
-          </p>
           <button className="buzz-primary-btn" onClick={() => setShowDetail((v) => !v)}>
             {showDetail ? "상세 그래프 접기" : "상세 그래프 펼치기"}
           </button>
@@ -134,10 +139,16 @@ export default function AnalysisPage({ setPage }) {
                 <span className="buzz-help-pill">원본 신호</span>
               </div>
               <div className="buzz-wave-chart">
-                {latestAnalysis ? <WaveformChart data={latestAnalysis.waveform} /> : <span>최신 분석 대기 중</span>}
+                <span className="buzz-wave-zero"/>
+                {WAVE.map((v, i) => (
+                  <i key={i} style={{
+                    height: `${v}%`,
+                    transform: `translateY(${i % 2 === 0 ? "-50%" : "0"})`
+                  }}/>
+                ))}
               </div>
               <div className="buzz-time-axis">
-                <span>0초</span><span>{data.duration}</span>
+                <span>0초</span><span>5초</span><span>10초</span><span>{data.duration}</span>
               </div>
               <p className="buzz-analysis-insight">
                 음원의 진폭 변화를 시간 순서대로 보여줍니다. 소리가 강해지는 구간과 반복 패턴을 빠르게 확인할 수 있습니다.
@@ -150,35 +161,51 @@ export default function AnalysisPage({ setPage }) {
                 <span className="buzz-help-pill">주파수 분석</span>
               </div>
               <div className="buzz-fft-chart buzz-fft-detailed">
-                {latestAnalysis ? <SpectrumChart data={latestAnalysis.fft} /> : <span>최신 분석 대기 중</span>}
+                <span className="buzz-axis-y fft">강도</span>
+                <div className="buzz-fft-plot">
+                  {FFT.map((h, i) => <i key={i} style={{height:`${h}%`}} title={`${Math.round(i * 4000/(FFT.length-1))} Hz`}/>)}
+                </div>
                 <div className="buzz-fft-axis">
                   <span>0</span><span>1k</span><span>2k</span><span>3k</span><span>4k Hz</span>
                 </div>
               </div>
               <p className="buzz-analysis-insight strong">
-                최신 2초 음원의 주파수별 상대 에너지를 표시합니다.
+                주요 에너지가 <b>{data.dominantBand}</b> 구간에 상대적으로 집중되어 있습니다.
               </p>
             </div>
 
             <div className="buzz-tech-block buzz-tech-main">
               <div className="buzz-tech-title">
-                <div><span>3. Mel-Spectrogram</span><small>전체 주파수 대역</small></div>
+                <div><span>3. Mel-Spectrogram</span><small>시간에 따른 주파수 에너지 변화</small></div>
                 <span className="buzz-help-pill">CNN 입력 특징</span>
               </div>
               <div className="buzz-spectrogram-layout buzz-spectrogram-large">
                 <span className="buzz-axis-y">주파수 ↑</span>
                 <div className="buzz-mel-visual">
-                  {latestAnalysis ? <MelSpectrogram data={latestAnalysis.spectrogram} /> : <span>최신 분석 대기 중</span>}
+                  {melCells.map((opacity, i) => <i key={i} style={{ opacity }} />)}
                 </div>
                 <div className="buzz-time-axis">
-                  <span>0초</span><span>{data.duration} → 시간</span>
+                  <span>0초</span><span>5초</span><span>10초</span><span>{data.duration} → 시간</span>
                 </div>
               </div>
               <div className="buzz-energy-legend">
                 <span>낮은 에너지</span><i/><i/><i/><i/><span>높은 에너지</span>
               </div>
               <p className="buzz-analysis-insight">
-                전체 주파수 대역을 표시합니다. 색이 밝을수록 해당 시간·주파수 구간의 에너지가 높습니다.
+                색이 밝을수록 해당 시간·주파수 구간의 에너지가 높다는 의미입니다. CNN이 소리 패턴을 이미지처럼 학습하는 데 활용할 수 있습니다.
+              </p>
+            </div>
+
+            <div className="buzz-tech-block buzz-mfcc-compact">
+              <div className="buzz-tech-title">
+                <div><span>4. MFCC</span><small>음색 특성을 압축한 특징 벡터</small></div>
+                <span className="buzz-help-pill">보조 특징</span>
+              </div>
+              <div className="buzz-mfcc-grid buzz-mfcc-wide">
+                {mfccCells.map((opacity, i) => <i key={i} style={{ opacity }} />)}
+              </div>
+              <p className="buzz-analysis-insight">
+                사람이 직접 해석하기보다는 AI가 말벌·꿀벌·Other의 음색 차이를 비교하는 특징값으로 사용합니다.
               </p>
             </div>
           </section>

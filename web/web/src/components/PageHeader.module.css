@@ -1,0 +1,25 @@
+/* 공통 UI - 페이지 제목과 설명 및 액션 스타일 */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.description {
+  margin-top: 6px;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+
+.action {
+  flex-shrink: 0;
+}

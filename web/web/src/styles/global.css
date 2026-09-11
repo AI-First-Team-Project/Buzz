@@ -1,0 +1,53 @@
+/* 공통 스타일 - 기본 요소와 전체 화면 스타일 */
+@import './tokens.css';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', system-ui, sans-serif;
+  background: var(--app-bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--brand-yellow);
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
