@@ -63,15 +63,17 @@ export function MonitoringProvider({ children }) {
     const [dangerDeadlines, setDangerDeadlines] = useState({});
     useEffect(() => {
         let cancelled = false;
-        Promise.allSettled([fetchSiteStatuses(), fetchHistory()]).then(([sitesResult, historyResult]) => {
-            if (cancelled)
-                return;
+        const refresh = async () => {
+            const [sitesResult, historyResult] = await Promise.allSettled([fetchSiteStatuses(), fetchHistory()]);
+            if (cancelled) return;
             setState((prev) => ({
                 sites: sitesResult.status === 'fulfilled' ? sitesResult.value.map(mapSite) : prev.sites,
                 detectionEvents: historyResult.status === 'fulfilled' ? historyResult.value.map(mapEvent) : prev.detectionEvents,
             }));
-        });
-        return () => { cancelled = true; };
+        };
+        refresh();
+        const timer = window.setInterval(refresh, 2000);
+        return () => { cancelled = true; window.clearInterval(timer); };
     }, []);
     useEffect(() => {
         try {

@@ -136,3 +136,26 @@ export async function fetchLatestAnalysis(siteId) {
   }
   return data;
 }
+
+export async function fetchSimulatorStatus() {
+  const response = await fetch(`${API_BASE_URL}/api/simulator/status`);
+  if (!response.ok) throw new Error(await readError(response));
+  return response.json();
+}
+export async function startSimulator() {
+  const response = await fetch(`${API_BASE_URL}/api/simulator/start`, { method: 'POST' });
+  if (!response.ok) throw new Error(await readError(response)); return response.json();
+}
+export async function stopSimulator() {
+  const response = await fetch(`${API_BASE_URL}/api/simulator/stop`, { method: 'POST' });
+  if (!response.ok) throw new Error(await readError(response)); return response.json();
+}
+export async function analyzeFullTestAudio(file, siteId=1) {
+  const form = new FormData(); form.append('file', file); form.append('site_id', String(siteId));
+  const response = await fetch(`${API_BASE_URL}/api/test/analyze-full`, { method:'POST', body:form });
+  if (!response.ok) throw new Error(await readError(response)); return response.json();
+}
+export async function fetchTestHistory() {
+  const response = await fetch(`${API_BASE_URL}/api/test/history`);
+  if (!response.ok) throw new Error(await readError(response)); return response.json();
+}

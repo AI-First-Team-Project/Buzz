@@ -75,7 +75,7 @@ class AnalysisResponse(BaseModel):
 
 
 class LatestVisualizationResponse(BaseModel):
-    """실시간 분석 화면 전용 응답. 화면에서 사용하지 않는 MFCC는 제외한다."""
+    """실시간 분석 화면 전용 응답. 최신 실제 2초 chunk의 전체 상세 신호를 포함한다."""
 
     analysis_id: str = Field(alias="analysisId")
     audio: AudioInfo
@@ -83,6 +83,7 @@ class LatestVisualizationResponse(BaseModel):
     waveform: WaveformData
     fft: FFTData
     spectrogram: SpectrogramData
+    mfcc: MFCCData
     meta: AnalysisMeta
 
     model_config = {"populate_by_name": True}

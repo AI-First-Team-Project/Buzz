@@ -82,3 +82,17 @@ ON DUPLICATE KEY UPDATE
 INSERT INTO gate_status (site_id, status) VALUES
   (1, 'open'), (2, 'open'), (3, 'open')
 ON DUPLICATE KEY UPDATE status = status;
+
+CREATE TABLE IF NOT EXISTS file_test_runs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    test_id VARCHAR(64) NOT NULL UNIQUE,
+    site_id INT NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    tested_at DATETIME NOT NULL,
+    total_duration DECIMAL(10,3) NOT NULL,
+    max_confidence DECIMAL(7,6) NOT NULL,
+    final_result ENUM('wasp','non_wasp') NOT NULL,
+    result_json JSON NOT NULL,
+    INDEX idx_file_test_time (tested_at),
+    INDEX idx_file_test_site (site_id, tested_at)
+);

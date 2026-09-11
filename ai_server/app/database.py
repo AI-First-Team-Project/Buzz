@@ -203,3 +203,71 @@ def list_detection_events(limit: int = 100, analysis_type: str | None = None) ->
         cursor.close()
         if connection.is_connected():
             connection.close()
+
+
+def _ensure_file_test_table(cursor) -> None:
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS file_test_runs (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            test_id VARCHAR(64) NOT NULL UNIQUE,
+            site_id INT NOT NULL,
+            file_name VARCHAR(255) NOT NULL,
+            tested_at DATETIME NOT NULL,
+            total_duration DECIMAL(10,3) NOT NULL,
+            max_confidence DECIMAL(7,6) NOT NULL,
+            final_result ENUM('wasp','non_wasp') NOT NULL,
+            result_json JSON NOT NULL,
+            INDEX idx_file_test_time (tested_at),
+            INDEX idx_file_test_site (site_id, tested_at)
+        )
+    """)
+
+
+def save_file_test_result(result: dict) -> None:
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    try:
+        _ensure_file_test_table(cursor)
+        cursor.execute("""
+            INSERT INTO file_test_runs
+              (test_id, site_id, file_name, tested_at, total_duration, max_confidence, final_result, result_json)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+            ON DUPLICATE KEY UPDATE result_json=VALUES(result_json)
+        """, (
+            result['testId'], result['siteId'], result['fileName'], __import__('datetime').datetime.fromisoformat(result['testedAt']),
+            result['totalDuration'], result['maxConfidence'], result['finalResult'], _json(result),
+        ))
+        connection.commit()
+    finally:
+        cursor.close()
+        if connection.is_connected(): connection.close()
+
+
+def safe_save_file_test_result(result: dict) -> None:
+    if not db_enabled(): return
+    try:
+        save_file_test_result(result)
+    except Exception:
+        logger.exception("MySQL 파일 테스트 이력 저장 실패")
+
+
+def list_file_test_results(limit: int = 20) -> list[dict]:
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        _ensure_file_test_table(cursor)
+        cursor.execute("SELECT result_json FROM file_test_runs ORDER BY tested_at DESC LIMIT %s", (limit,))
+        rows = cursor.fetchall()
+        return [row['result_json'] if isinstance(row['result_json'], dict) else json.loads(row['result_json']) for row in rows]
+    finally:
+        cursor.close()
+        if connection.is_connected(): connection.close()
+
+
+def safe_list_file_test_results(limit: int = 20) -> list[dict] | None:
+    if not db_enabled(): return None
+    try:
+        return list_file_test_results(limit)
+    except Exception:
+        logger.exception("MySQL 파일 테스트 이력 조회 실패")
+        return None

@@ -1,0 +1,7 @@
+.backButton{display:inline-flex;align-items:center;justify-content:center;padding:9px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text-primary);font-weight:700;text-decoration:none}
+.emptyCard,.summaryCard,.chartCard{border:1px solid var(--border);background:var(--surface);border-radius:16px;padding:20px;box-shadow:var(--shadow-sm)}
+.emptyCard{display:grid;gap:10px;max-width:720px}.emptyCard p{color:var(--text-secondary)}
+.summaryCard{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:18px}.summaryCard>div{display:grid;gap:5px;padding:12px;border-radius:12px;background:var(--surface-muted)}.summaryCard span{font-size:12px;color:var(--text-secondary)}.summaryCard strong{font-size:15px;overflow-wrap:anywhere}.summaryCard.danger{border-color:#ef4444}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px!important}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.chartCard{min-width:0}.wide{grid-column:1/-1}.chartHead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}.chartHead h2{font-size:16px;margin:0}.chartHead span{font-size:12px;color:var(--text-secondary)}
+@media(max-width:900px){.summaryCard{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+@media(max-width:600px){.summaryCard{grid-template-columns:1fr}}

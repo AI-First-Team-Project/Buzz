@@ -54,6 +54,25 @@ services:
       start_period: 120s
     restart: unless-stopped
 
+  simulator:
+    image: buzz-ai-server:local
+    build:
+      context: .
+      dockerfile: ai_server/Dockerfile
+    command: ["python", "-m", "ai_server.app.workers.audio_simulator"]
+    environment:
+      BUZZ_AI_MODEL_NAME: CNN
+      BUZZ_AI_MODEL_THRESHOLD: "0.7"
+      BUZZ_SIMULATOR_AUDIO_ROOT: /app/data/audio_simulator
+      BUZZ_SIMULATOR_API_URL: http://ai-server:8000/api/auto/analyze-batch
+      BUZZ_SIMULATOR_INTERVAL_SECONDS: "2"
+    volumes:
+      - ./data/audio_simulator:/app/data/audio_simulator
+    depends_on:
+      ai-server:
+        condition: service_healthy
+    restart: unless-stopped
+
   web:
     build:
       context: ./web

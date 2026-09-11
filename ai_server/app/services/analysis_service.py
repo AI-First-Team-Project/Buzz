@@ -79,10 +79,9 @@ def create_visualization_response(
     analysis: BatchAnalysisResult,
 ) -> LatestVisualizationResponse:
     """이미 추론한 최신 음원에서 화면용 수치만 계산해 전체 응답을 구성한다."""
-    duration_sec, waveform, fft, spectrogram, _ = create_analysis_data(
-        audio_path,
-        include_mfcc=False,
-    )
+    duration_sec, waveform, fft, spectrogram, mfcc = create_analysis_data(audio_path, include_mfcc=True)
+    if mfcc is None:
+        raise RuntimeError("실시간 상세 분석에 필요한 MFCC가 생성되지 않았습니다.")
     return LatestVisualizationResponse(
         analysisId=analysis.analysis_id,
         audio=AudioInfo(
@@ -94,5 +93,6 @@ def create_visualization_response(
         waveform=waveform,
         fft=fft,
         spectrogram=spectrogram,
+        mfcc=mfcc,
         meta=analysis.meta,
     )

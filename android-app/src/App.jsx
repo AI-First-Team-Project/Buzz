@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import SplashScreen from "./components/SplashScreen";
-import HomePage from "./components/HomePage";
+import HomePage from "./components/EnterpriseMobileHome.jsx";
 import AnalysisPage from "./components/AnalysisPage.jsx";
 import HistoryPage from "./components/HistoryPage";
 import ResultPage from "./components/ResultPage";
