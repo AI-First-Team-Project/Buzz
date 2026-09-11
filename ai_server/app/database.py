@@ -297,3 +297,84 @@ def close_gate_auto(
 
 
 # ===== [수정 종료] =====
+
+# ===== [추가 시작 9월 11일 16:00] 수동 문 제어 DB 저장 함수 추가 =====
+def set_gate_manual(
+    site_id: int,
+    action: str,
+) -> None:
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        if action not in ("open", "close"):
+            raise ValueError(f"지원하지 않는 게이트 동작입니다: {action}")
+
+        status = "open" if action == "open" else "closed"
+
+        cursor.execute(
+            """
+            INSERT INTO gate_status (
+                site_id,
+                status
+            )
+            VALUES (
+                %s,
+                %s
+            )
+            ON DUPLICATE KEY UPDATE
+                status = %s
+            """,
+            (
+                site_id,
+                status,
+                status,
+            ),
+        )
+
+        cursor.execute(
+            """
+            INSERT INTO gate_events (
+                site_id,
+                detection_event_id,
+                action,
+                trigger_type,
+                result,
+                reason
+            )
+            VALUES (
+                %s,
+                NULL,
+                %s,
+                'manual',
+                'success',
+                'manual_request'
+            )
+            """,
+            (
+                site_id,
+                action,
+            ),
+        )
+
+        connection.commit()
+
+    except Exception:
+        if connection is not None:
+            connection.rollback()
+
+        raise
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if (
+            connection is not None
+            and connection.is_connected()
+        ):
+            connection.close()
+# ===== [추가 종료] =====
