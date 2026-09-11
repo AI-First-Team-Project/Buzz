@@ -3,6 +3,7 @@ from datetime import datetime
 from threading import Lock
 from uuid import uuid4
 
+from .database import safe_save_history_events
 from .schemas import Probabilities
 from .services.state_service import advance_detection_state
 
@@ -51,6 +52,12 @@ _sites = {
 }
 
 _history: list[dict] = []
+
+
+def _record_events(events):
+    _history[0:0] = events
+    del _history[500:]
+    safe_save_history_events(events)
 
 
 def get_site(site_id: int) -> dict | None:
@@ -127,11 +134,11 @@ def apply_prediction(
                     "action": "자동 폐쇄",
                     "analysis_id": analysis_id,
                 })
-            _history[0:0] = events
+            _record_events(events)
 
         elif decision.transition == "recovery":
             # 정상 복귀가 문 자동 개방을 뜻하지는 않는다. 문은 별도 제어 명령으로 연다.
-            _history.insert(0, {
+            _record_events([{
                 "id": str(uuid4()),
                 "type": "recovery",
                 "site_id": site_id,
@@ -143,12 +150,12 @@ def apply_prediction(
                 "door_status": site["door_status"],
                 "action": "정상 상태 복귀",
                 "analysis_id": analysis_id,
-            })
+            }])
 
         elif decision.status == "DANGER" and class_name == "wasp" and site["door_status"] == "OPEN":
             # 위험 중 수동 개방 후 말벌이 다시 탐지되면 즉시 재폐쇄한다.
             site["door_status"] = "CLOSED"
-            _history.insert(0, {
+            _record_events([{
                 "id": str(uuid4()),
                 "type": "gate",
                 "site_id": site_id,
@@ -160,7 +167,7 @@ def apply_prediction(
                 "door_status": "CLOSED",
                 "action": "자동 재폐쇄",
                 "analysis_id": analysis_id,
-            })
+            }])
 
         return deepcopy(site)
 
@@ -172,9 +179,12 @@ def set_door(site_id: int, action: str) -> dict:
 
         site = _sites[site_id]
         now = datetime.now().astimezone()
-        site["door_status"] = "OPEN" if action == "open" else "CLOSED"
+        target = "OPEN" if action == "open" else "CLOSED"
+        if site["door_status"] == target:
+            return deepcopy(site)
+        site["door_status"] = target
 
-        _history.insert(0, {
+        _record_events([{
             "id": str(uuid4()),
             "type": "gate",
             "site_id": site_id,
@@ -186,6 +196,6 @@ def set_door(site_id: int, action: str) -> dict:
             "door_status": site["door_status"],
             "action": "수동 개방" if action == "open" else "수동 폐쇄",
             "analysis_id": site["latest_analysis_id"],
-        })
+        }])
 
         return deepcopy(site)

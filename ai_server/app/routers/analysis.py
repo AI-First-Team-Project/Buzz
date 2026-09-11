@@ -20,13 +20,13 @@ from ..store import apply_prediction, get_site
 router = APIRouter(prefix="/api", tags=["analysis"])
 
 
-def _apply_prediction_and_sync_gate(**kwargs) -> dict:
+def _apply_prediction_and_sync_gate(**kwargs) -> bool:
     site_id = kwargs["site_id"]
     previous = get_site(site_id)
     updated = apply_prediction(**kwargs)
     if previous is not None and previous["door_status"] != "CLOSED" and updated["door_status"] == "CLOSED":
         safe_update_gate_status(site_id, "closed")
-    return updated
+    return previous is not None and previous["status"] != updated["status"]
 
 
 def _audio_bytes(saved_audio) -> bytes:
@@ -92,7 +92,7 @@ async def auto_analyze(
     try:
         named_path = _save_upload(file)
         result = analyze_audio(named_path, "auto_detection", file.filename)
-        _apply_prediction_and_sync_gate(
+        status_changed = _apply_prediction_and_sync_gate(
             site_id=site_id,
             class_name=result.prediction.label,
             confidence=result.prediction.confidence,
@@ -105,6 +105,7 @@ async def auto_analyze(
             file_path=named_path,
             result=result,
             analysis_type="live",
+            force_record=status_changed,
         )
         return result
     except KeyError:
@@ -136,7 +137,7 @@ async def auto_analyze_batch(
         results = analyze_audio_batch(saved)
         response = []
         for site_id, result, (saved_audio, _) in zip(site_ids, results, saved, strict=True):
-            _apply_prediction_and_sync_gate(
+            status_changed = _apply_prediction_and_sync_gate(
                 site_id=site_id,
                 class_name=result.prediction.label,
                 confidence=result.prediction.confidence,
@@ -149,6 +150,7 @@ async def auto_analyze_batch(
                 file_path=None,
                 result=result,
                 analysis_type="simulation",
+                force_record=status_changed,
             )
             set_latest_analysis_source(site_id, result, _audio_bytes(saved_audio))
             response.append(BatchAnalysisItemResponse(siteId=site_id, analysis=result))
@@ -195,7 +197,7 @@ def analyze_file_from_path(payload: AnalyzePathRequest):
 
     try:
         result = analyze_audio(audio_path, payload.source)
-        _apply_prediction_and_sync_gate(
+        status_changed = _apply_prediction_and_sync_gate(
             site_id=payload.site_id,
             class_name=result.prediction.label,
             confidence=result.prediction.confidence,
@@ -208,6 +210,7 @@ def analyze_file_from_path(payload: AnalyzePathRequest):
             file_path=audio_path,
             result=result,
             analysis_type="live",
+            force_record=status_changed,
         )
         return result
     except KeyError:

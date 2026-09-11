@@ -1,3 +1,4 @@
+import { AnalysisLogs } from './pages/History/AnalysisLogs.jsx';
 import { MonitoringProvider } from './data/MonitoringContext';
 import { Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
@@ -18,6 +19,7 @@ export function App() {
           <Route path="sites" element={<Worksites />} />
           <Route path="analysis" element={<AIAnalysis />} />
           <Route path="history" element={<History />} />
+          <Route path="analysis-logs" element={<AnalysisLogs />} />
           <Route path="settings" element={<Settings />} />
           <Route path="sound-test" element={<SoundTest />} />
           <Route path="sound-test/detail" element={<SoundTestDetail />} />
