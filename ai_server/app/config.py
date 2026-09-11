@@ -6,8 +6,13 @@ PROJECT_ROOT = BASE_DIR.parent
 UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+<<<<<<< HEAD
 # FastAPI에서 사용할 ai_model 모델. 환경변수로 바꾼 뒤 서버를 재시작한다.
 AI_MODEL_NAME = os.getenv("BUZZ_AI_MODEL_NAME", "CNN")
+=======
+# FastAPI에서 사용할 ai_model 모델. 다른 종류로 바꾼 뒤 서버를 재시작한다.
+AI_MODEL_NAME = "CNN"
+>>>>>>> dev
 AI_MODEL_DIR = PROJECT_ROOT / "ai_model" / "models"
 AI_MODEL_THRESHOLD = float(os.getenv("BUZZ_AI_MODEL_THRESHOLD", "0.7"))
 
