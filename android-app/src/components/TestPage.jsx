@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useState } from "react";
 import { analyzeTestAudio, API_BASE_URL } from "../api/buzzApi";
 import {
@@ -46,41 +45,6 @@ function toViewModel(data) {
 }
 
 function AnalysisModal({ result, onClose }) {
-=======
-
-import { useState } from "react";
-import BottomNav from "./BottomNav";
-
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000").replace(/\/$/, "");
-
-function svgUrl(svg) {
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
-function lineChartUrl(values, color = "#f5a623") {
-  const sampled = values?.filter((_, index) => index % Math.max(1, Math.ceil(values.length / 500))) ?? [];
-  const min = Math.min(...sampled, 0);
-  const max = Math.max(...sampled, 1e-6);
-  const points = sampled.map((value, index) => `${(index / Math.max(sampled.length - 1, 1)) * 800},${190 - ((value - min) / Math.max(max - min, 1e-6)) * 180}`).join(" ");
-  return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200"><rect width="800" height="200" fill="#111827"/><polyline fill="none" stroke="${color}" stroke-width="2" points="${points}"/></svg>`);
-}
-
-function heatmapUrl(matrix) {
-  const rows = matrix?.length ?? 0;
-  const columns = matrix?.[0]?.length ?? 0;
-  const flat = matrix?.flat() ?? [];
-  const min = Math.min(...flat, 0);
-  const max = Math.max(...flat, 1);
-  const cells = matrix?.map((row, y) => row.map((value, x) => {
-    const level = (value - min) / Math.max(max - min, 1e-6);
-    const hue = 280 - level * 235;
-    return `<rect x="${x}" y="${rows - y - 1}" width="1.1" height="1.1" fill="hsl(${hue} 85% ${20 + level * 55}%)"/>`;
-  }).join("")).join("") ?? "";
-  return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${columns || 1} ${rows || 1}" preserveAspectRatio="none"><rect width="100%" height="100%" fill="#111827"/>${cells}</svg>`);
-}
-
-function AnalysisImageModal({ result, onClose }) {
->>>>>>> dev
   if (!result) return null;
   const danger = result.main === "말벌";
 
@@ -142,7 +106,6 @@ export default function TestPage({ setPage }) {
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
-<<<<<<< HEAD
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -158,43 +121,6 @@ export default function TestPage({ setPage }) {
       setError(analysisError instanceof Error ? analysisError.message : "음원 분석에 실패했습니다.");
     } finally {
       setLoading(false);
-=======
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [error, setError] = useState("");
-
-  const analyze = async () => {
-    if (!file) return;
-    setIsAnalyzing(true);
-    setError("");
-    try {
-      const body = new FormData();
-      body.append("file", file);
-      const response = await fetch(`${API_BASE_URL}/api/test/analyze`, { method: "POST", body });
-      const data = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(data?.detail || `분석 요청 실패 (${response.status})`);
-      const wasp = data.prediction.probabilities.wasp * 100;
-      const nonWasp = data.prediction.probabilities.non_wasp * 100;
-      setResult({
-        main: data.prediction.label === "wasp" ? "말벌" : "말벌 아님",
-        confidence: (data.prediction.confidence * 100).toFixed(1),
-        rows: [["말벌", wasp.toFixed(1)], ["말벌 아님", nonWasp.toFixed(1)]],
-        fileName: data.audio.fileName,
-        duration: `${data.audio.duration.toFixed(1)}초`,
-        analyzedAt: new Date(data.meta.timestamp).toLocaleTimeString("ko-KR", { hour12: false }),
-        images: {
-          waveplot: lineChartUrl(data.waveform.amplitude),
-          fft: lineChartUrl(data.fft.magnitudeDb, "#60a5fa"),
-          mel: heatmapUrl(data.spectrogram.db),
-          mfcc: heatmapUrl(data.mfcc.coefficients),
-        },
-      });
-      setDetailOpen(false);
-    } catch (requestError) {
-      setResult(null);
-      setError(requestError instanceof Error ? requestError.message : "서버에 연결할 수 없습니다.");
-    } finally {
-      setIsAnalyzing(false);
->>>>>>> dev
     }
   };
 
@@ -220,22 +146,14 @@ export default function TestPage({ setPage }) {
                 setResult(null);
                 setError("");
                 setDetailOpen(false);
-                setError("");
               }}
             />
           </label>
-<<<<<<< HEAD
           <button className="buzz-primary-btn" disabled={!file || loading} onClick={analyze}>
             {loading ? "AI 분석 중…" : "분석하기"}
           </button>
           <small className="buzz-api-endpoint">연결 서버: {API_BASE_URL}</small>
           {error && <p className="buzz-analysis-error" role="alert">{error}</p>}
-=======
-          <button className="buzz-primary-btn" disabled={!file || isAnalyzing} onClick={analyze}>
-            {isAnalyzing ? "분석 중…" : "분석하기"}
-          </button>
-          {error && <p role="alert" className="buzz-test-error">{error}</p>}
->>>>>>> dev
         </section>
 
         {result && (
