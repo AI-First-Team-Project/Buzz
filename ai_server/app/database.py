@@ -298,11 +298,16 @@ def close_gate_auto(
 
 # ===== [수정 종료] =====
 
+
 # ===== [추가 시작 9월 11일 16:00] 수동 문 제어 DB 저장 함수 추가 =====
 def set_gate_manual(
     site_id: int,
     action: str,
 ) -> None:
+    """
+    사용자의 수동 문 열기/닫기 요청을 저장한다.
+    """
+
     connection = None
     cursor = None
 
@@ -311,7 +316,9 @@ def set_gate_manual(
         cursor = connection.cursor()
 
         if action not in ("open", "close"):
-            raise ValueError(f"지원하지 않는 게이트 동작입니다: {action}")
+            raise ValueError(
+                f"지원하지 않는 게이트 동작입니다: {action}"
+            )
 
         status = "open" if action == "open" else "closed"
 
@@ -377,4 +384,757 @@ def set_gate_manual(
             and connection.is_connected()
         ):
             connection.close()
+# ===== [추가 종료] =====
+
+
+# ===== [추가 시작 9월 11일 17:10] 전체 MySQL 조회 함수 추가 =====
+
+def get_sites():
+    """
+    전체 사업장 목록을 조회한다.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                name,
+                location,
+                wasp_close_threshold
+            FROM sites
+            ORDER BY id ASC
+            """
+        )
+
+        return cursor.fetchall()
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if (
+            connection is not None
+            and connection.is_connected()
+        ):
+            connection.close()
+
+
+def get_site_info(site_id: int):
+    """
+    특정 사업장 정보를 조회한다.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                name,
+                location,
+                wasp_close_threshold
+            FROM sites
+            WHERE id = %s
+            """,
+            (site_id,),
+        )
+
+        row = cursor.fetchone()
+
+        if row is None:
+            raise KeyError(site_id)
+
+        return row
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if (
+            connection is not None
+            and connection.is_connected()
+        ):
+            connection.close()
+
+
+def get_detection_history(
+    limit: int = 100,
+    site_id: int | None = None,
+):
+    """
+    AI 감지 이력을 최신순으로 조회한다.
+
+    site_id가 지정되면 해당 사업장만 조회한다.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        if site_id is None:
+            cursor.execute(
+                """
+                SELECT
+                    de.id,
+                    de.analysis_id,
+                    de.site_id,
+                    s.name AS site_name,
+                    de.file_name,
+                    de.file_path,
+                    de.sample_rate,
+                    de.duration,
+                    de.prediction,
+                    de.confidence,
+                    de.wasp_probability,
+                    de.non_wasp_probability,
+                    de.model_name,
+                    de.source,
+                    de.audio_time,
+                    de.inference_time,
+                    de.visualization_time,
+                    de.total_time,
+                    de.detected_at
+                FROM detection_events de
+                JOIN sites s
+                    ON s.id = de.site_id
+                ORDER BY de.id DESC
+                LIMIT %s
+                """,
+                (limit,),
+            )
+
+        else:
+            cursor.execute(
+                """
+                SELECT
+                    de.id,
+                    de.analysis_id,
+                    de.site_id,
+                    s.name AS site_name,
+                    de.file_name,
+                    de.file_path,
+                    de.sample_rate,
+                    de.duration,
+                    de.prediction,
+                    de.confidence,
+                    de.wasp_probability,
+                    de.non_wasp_probability,
+                    de.model_name,
+                    de.source,
+                    de.audio_time,
+                    de.inference_time,
+                    de.visualization_time,
+                    de.total_time,
+                    de.detected_at
+                FROM detection_events de
+                JOIN sites s
+                    ON s.id = de.site_id
+                WHERE de.site_id = %s
+                ORDER BY de.id DESC
+                LIMIT %s
+                """,
+                (
+                    site_id,
+                    limit,
+                ),
+            )
+
+        return cursor.fetchall()
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if (
+            connection is not None
+            and connection.is_connected()
+        ):
+            connection.close()
+
+
+def get_detection_event(
+    detection_event_id: int,
+):
+    """
+    detection_events.id 기준으로
+    특정 AI 감지 이벤트를 조회한다.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                de.id,
+                de.analysis_id,
+                de.site_id,
+                s.name AS site_name,
+                de.file_name,
+                de.file_path,
+                de.sample_rate,
+                de.duration,
+                de.prediction,
+                de.confidence,
+                de.wasp_probability,
+                de.non_wasp_probability,
+                de.model_name,
+                de.source,
+                de.audio_time,
+                de.inference_time,
+                de.visualization_time,
+                de.total_time,
+                de.detected_at
+            FROM detection_events de
+            JOIN sites s
+                ON s.id = de.site_id
+            WHERE de.id = %s
+            """,
+            (detection_event_id,),
+        )
+
+        row = cursor.fetchone()
+
+        if row is None:
+            raise KeyError(detection_event_id)
+
+        return row
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if (
+            connection is not None
+            and connection.is_connected()
+        ):
+            connection.close()
+
+
+def get_detection_event_by_analysis_id(
+    analysis_id: str,
+):
+    """
+    analysis_id 기준으로 특정 AI 감지 이벤트를 조회한다.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                de.id,
+                de.analysis_id,
+                de.site_id,
+                s.name AS site_name,
+                de.file_name,
+                de.file_path,
+                de.sample_rate,
+                de.duration,
+                de.prediction,
+                de.confidence,
+                de.wasp_probability,
+                de.non_wasp_probability,
+                de.model_name,
+                de.source,
+                de.audio_time,
+                de.inference_time,
+                de.visualization_time,
+                de.total_time,
+                de.detected_at
+            FROM detection_events de
+            JOIN sites s
+                ON s.id = de.site_id
+            WHERE de.analysis_id = %s
+            """,
+            (analysis_id,),
+        )
+
+        row = cursor.fetchone()
+
+        if row is None:
+            raise KeyError(analysis_id)
+
+        return row
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if (
+            connection is not None
+            and connection.is_connected()
+        ):
+            connection.close()
+
+
+def get_analysis_graph_data(
+    detection_event_id: int,
+):
+    """
+    특정 AI 감지 이벤트의 분석 그래프 데이터를 조회한다.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                detection_event_id,
+                waveform,
+                fft,
+                spectrogram,
+                mfcc
+            FROM analysis_graph_data
+            WHERE detection_event_id = %s
+            """,
+            (detection_event_id,),
+        )
+
+        row = cursor.fetchone()
+
+        if row is None:
+            raise KeyError(detection_event_id)
+
+        # JSON 컬럼이 문자열로 반환될 경우 Python 객체로 변환
+        for key in (
+            "waveform",
+            "fft",
+            "spectrogram",
+            "mfcc",
+        ):
+            if (
+                row[key] is not None
+                and isinstance(row[key], str)
+            ):
+                row[key] = json.loads(row[key])
+
+        return row
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if (
+            connection is not None
+            and connection.is_connected()
+        ):
+            connection.close()
+
+
+def get_gate_status(
+    site_id: int,
+):
+    """
+    특정 사업장의 현재 게이트 상태를 조회한다.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                gs.site_id,
+                s.name AS site_name,
+                gs.status,
+                gs.updated_at
+            FROM gate_status gs
+            JOIN sites s
+                ON s.id = gs.site_id
+            WHERE gs.site_id = %s
+            """,
+            (site_id,),
+        )
+
+        return cursor.fetchone()
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if (
+            connection is not None
+            and connection.is_connected()
+        ):
+            connection.close()
+
+
+def get_all_gate_status():
+    """
+    전체 사업장의 현재 게이트 상태를 조회한다.
+
+    gate_status 데이터가 아직 없는 사업장도
+    sites 기준으로 함께 반환한다.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                s.id AS site_id,
+                s.name AS site_name,
+                gs.status,
+                gs.updated_at
+            FROM sites s
+            LEFT JOIN gate_status gs
+                ON gs.site_id = s.id
+            ORDER BY s.id ASC
+            """
+        )
+
+        return cursor.fetchall()
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if (
+            connection is not None
+            and connection.is_connected()
+        ):
+            connection.close()
+
+
+def get_gate_events(
+    limit: int = 100,
+    site_id: int | None = None,
+):
+    """
+    gate_events 원본 데이터를 최신순으로 조회한다.
+
+    site_id가 지정되면 해당 사업장의
+    게이트 이벤트만 조회한다.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        if site_id is None:
+            cursor.execute(
+                """
+                SELECT
+                    ge.id,
+                    ge.site_id,
+                    s.name AS site_name,
+                    ge.detection_event_id,
+                    ge.action,
+                    ge.trigger_type,
+                    ge.result,
+                    ge.reason,
+                    ge.created_at
+                FROM gate_events ge
+                JOIN sites s
+                    ON s.id = ge.site_id
+                ORDER BY ge.id DESC
+                LIMIT %s
+                """,
+                (limit,),
+            )
+
+        else:
+            cursor.execute(
+                """
+                SELECT
+                    ge.id,
+                    ge.site_id,
+                    s.name AS site_name,
+                    ge.detection_event_id,
+                    ge.action,
+                    ge.trigger_type,
+                    ge.result,
+                    ge.reason,
+                    ge.created_at
+                FROM gate_events ge
+                JOIN sites s
+                    ON s.id = ge.site_id
+                WHERE ge.site_id = %s
+                ORDER BY ge.id DESC
+                LIMIT %s
+                """,
+                (
+                    site_id,
+                    limit,
+                ),
+            )
+
+        return cursor.fetchall()
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if (
+            connection is not None
+            and connection.is_connected()
+        ):
+            connection.close()
+
+
+def get_gate_event(
+    gate_event_id: int,
+):
+    """
+    특정 게이트 이벤트 상세 정보를 조회한다.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                ge.id,
+                ge.site_id,
+                s.name AS site_name,
+                ge.detection_event_id,
+                ge.action,
+                ge.trigger_type,
+                ge.result,
+                ge.reason,
+                ge.created_at
+            FROM gate_events ge
+            JOIN sites s
+                ON s.id = ge.site_id
+            WHERE ge.id = %s
+            """,
+            (gate_event_id,),
+        )
+
+        row = cursor.fetchone()
+
+        if row is None:
+            raise KeyError(gate_event_id)
+
+        return row
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if (
+            connection is not None
+            and connection.is_connected()
+        ):
+            connection.close()
+
+
+def get_detection_with_graph(
+    detection_event_id: int,
+):
+    """
+    AI 감지 이벤트와 분석 그래프 데이터를
+    한 번에 조회한다.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                de.id AS detection_event_id,
+                de.analysis_id,
+                de.site_id,
+                s.name AS site_name,
+                de.file_name,
+                de.file_path,
+                de.sample_rate,
+                de.duration,
+                de.prediction,
+                de.confidence,
+                de.wasp_probability,
+                de.non_wasp_probability,
+                de.model_name,
+                de.source,
+                de.audio_time,
+                de.inference_time,
+                de.visualization_time,
+                de.total_time,
+                de.detected_at,
+                ag.id AS graph_id,
+                ag.waveform,
+                ag.fft,
+                ag.spectrogram,
+                ag.mfcc
+            FROM detection_events de
+            JOIN sites s
+                ON s.id = de.site_id
+            LEFT JOIN analysis_graph_data ag
+                ON ag.detection_event_id = de.id
+            WHERE de.id = %s
+            """,
+            (detection_event_id,),
+        )
+
+        row = cursor.fetchone()
+
+        if row is None:
+            raise KeyError(detection_event_id)
+
+        for key in (
+            "waveform",
+            "fft",
+            "spectrogram",
+            "mfcc",
+        ):
+            if (
+                row[key] is not None
+                and isinstance(row[key], str)
+            ):
+                row[key] = json.loads(row[key])
+
+        return row
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if (
+            connection is not None
+            and connection.is_connected()
+        ):
+            connection.close()
+
+
+def get_gate_history(
+    limit: int = 100,
+):
+    """
+    프론트엔드 HistoryItem 형식으로
+    게이트 이력을 조회한다.
+    """
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                ge.id,
+                ge.site_id,
+                s.name AS site_name,
+                ge.action,
+                ge.trigger_type,
+                ge.result,
+                ge.reason,
+                ge.created_at
+            FROM gate_events ge
+            JOIN sites s
+                ON s.id = ge.site_id
+            ORDER BY ge.id DESC
+            LIMIT %s
+            """,
+            (limit,),
+        )
+
+        rows = cursor.fetchall()
+
+        history = []
+
+        for row in rows:
+            # 이벤트 당시의 action을 기준으로 문 상태 결정
+            door_status = (
+                "OPEN"
+                if row["action"] == "open"
+                else "CLOSED"
+            )
+
+            if row["trigger_type"] == "manual":
+                title = (
+                    "사용자 문 열기"
+                    if row["action"] == "open"
+                    else "사용자 문 닫기"
+                )
+            else:
+                title = (
+                    "자동 문 열기"
+                    if row["action"] == "open"
+                    else "말벌 감지로 문 닫기"
+                )
+
+            history.append(
+                {
+                    "id": f"gate-{row['id']}",
+                    "type": "gate",
+                    "site_id": row["site_id"],
+                    "site_name": row["site_name"],
+                    "title": title,
+                    "timestamp": row["created_at"],
+                    "result": None,
+                    "confidence": None,
+                    "door_status": door_status,
+                    "action": row["action"],
+                }
+            )
+
+        return history
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if (
+            connection is not None
+            and connection.is_connected()
+        ):
+            connection.close()
+
+
 # ===== [추가 종료] =====
