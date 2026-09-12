@@ -96,3 +96,16 @@ CREATE TABLE IF NOT EXISTS file_test_runs (
     INDEX idx_file_test_time (tested_at),
     INDEX idx_file_test_site (site_id, tested_at)
 );
+
+
+-- State-change history and per-site periodic analysis recording schedule.
+CREATE TABLE IF NOT EXISTS status_history (
+    event_id VARCHAR(64) PRIMARY KEY,
+    occurred_at DATETIME(6) NOT NULL,
+    payload JSON NOT NULL,
+    INDEX idx_status_history_time (occurred_at)
+);
+CREATE TABLE IF NOT EXISTS analysis_record_schedule (
+    site_id INT PRIMARY KEY,
+    last_periodic_at DATETIME NULL
+);

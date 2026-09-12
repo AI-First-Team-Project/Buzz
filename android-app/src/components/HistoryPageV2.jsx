@@ -1,17 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import BottomNav from "./BottomNav";
 import "./WebStylePages.css";
-import { getLatestDetection, getRuntimeHistory, getSiteRuntimeStatus } from "../types";
-
-const BASE_HISTORY = [
-  { id: 1, type: "danger", site: "사업장 3", time: "14:30:25", title: "말벌 감지", result: "말벌", confidence: 97, door: "닫힘", action: "자동 폐쇄", probs: { hornet: 97, bee: 2, other: 1 }, flow: ["말벌 감지", "출입문 자동 닫힘", "사용자에게 위험 상태 표시"] },
-  { id: 2, type: "gate", site: "사업장 3", time: "14:31:02", title: "사용자 문 열기", result: "말벌", confidence: 96, door: "열림", action: "수동 개방", probs: { hornet: 96, bee: 3, other: 1 }, flow: ["말벌 감지 지속", "사용자 문 열기", "3초 후 안전 정책에 따라 자동 재폐쇄"] },
-  { id: 3, type: "danger", site: "사업장 3", time: "14:31:05", title: "자동 재폐쇄", result: "말벌", confidence: 96, door: "닫힘", action: "자동 재폐쇄", probs: { hornet: 96, bee: 3, other: 1 }, flow: ["사용자 문 열기", "말벌 감지 지속", "자동 재폐쇄 완료"] },
-  { id: 4, type: "gate", site: "사업장 2", time: "11:05:12", title: "사용자 문 닫기", result: "꿀벌", confidence: 91, door: "닫힘", action: "수동 폐쇄", probs: { hornet: 4, bee: 91, other: 5 }, flow: ["사용자 제어", "출입문 닫힘", "수동 상태 저장"] },
-];
+import { fetchHistory } from "../api/buzzApi";
 
 const FILTERS = [["all", "전체"], ["danger", "위험"], ["gate", "문 제어"]];
-const HISTORY_OVERVIEW = { total: 24, danger: 8, door: 3 };
+
 
 function getBinaryProbs(item) {
   const probs = item?.probs || {};
@@ -86,13 +79,25 @@ export default function HistoryPage({ setPage }) {
   const [selected, setSelected] = useState(null);
   const [historyPage, setHistoryPage] = useState(1);
 
-  const latest = getLatestDetection();
-  const site3Danger = getSiteRuntimeStatus(3) === "danger";
-
-  const history = useMemo(() => {
-    const runtimeHistory = getRuntimeHistory();
-    return Array.isArray(runtimeHistory) && runtimeHistory.length > 0 ? runtimeHistory : BASE_HISTORY;
-  }, [site3Danger, latest?.time]);
+  const [history, setHistory] = useState([]);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let active = true;
+    const load = () => fetchHistory().then(rows => {
+      if (!active) return;
+      setError('');
+      setHistory(rows.map(row => ({
+        id: row.id, type: row.type, site: row.site_name,
+        time: new Date(row.timestamp).toLocaleString('ko-KR'), title: row.title,
+        result: row.result == null ? '분석 대기' : row.result === 'wasp' ? '말벌' : '말벌 아님',
+        confidence: Math.round((row.confidence || 0) * 100),
+        door: row.door_status === 'OPEN' ? '열림' : '닫힘', action: row.action, flow: [row.title, row.action],
+      })));
+    }).catch(e => { if (active) setError(e.message); });
+    load(); const timer = setInterval(load, 2000);
+    return () => { active = false; clearInterval(timer); };
+  }, []);
+  const HISTORY_OVERVIEW = { total: history.length, danger: history.filter(v => v.type === 'danger').length, door: history.filter(v => v.type === 'gate').length };
 
   const filtered = history.filter((item) => filter === "all" || item.type === filter);
   const pageCount = Math.max(1, Math.ceil(filtered.length / 10));
@@ -109,6 +114,7 @@ export default function HistoryPage({ setPage }) {
           </div>
         </div>
 
+        {error && <p role="alert">{error}</p>}
         <section className="buzz-history-summary">
           <div><span>전체 이벤트</span><b>{HISTORY_OVERVIEW.total}</b></div>
           <div className="danger"><span>위험</span><b>{HISTORY_OVERVIEW.danger}</b></div>

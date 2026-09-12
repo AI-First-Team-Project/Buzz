@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 import logging
 import os
+from datetime import timezone
+from threading import Lock
 from pathlib import Path
 from typing import Literal
 
@@ -65,11 +67,27 @@ def save_detection_result(
     result: AnalysisResponse,
     analysis_type: AnalysisType,
     expected_label: str | None = None,
-) -> int:
+    force_record: bool = False,
+) -> int | None:
     """Persist one AI analysis and its visualization data."""
     connection = get_db_connection()
     cursor = connection.cursor()
     try:
+        periodic_due = False
+        if analysis_type in {"live", "simulation"}:
+            _ensure_history_tables(cursor)
+            cursor.execute("INSERT IGNORE INTO analysis_record_schedule (site_id) VALUES (%s)", (site_id,))
+            cursor.execute("SELECT last_periodic_at, UTC_TIMESTAMP() FROM analysis_record_schedule WHERE site_id=%s FOR UPDATE", (site_id,))
+            last_periodic, now = cursor.fetchone()
+            periodic_due = last_periodic is None or (now - last_periodic).total_seconds() >= 300
+            if not periodic_due and not force_record:
+                connection.rollback()
+                return None
+        cursor.execute("SELECT id FROM detection_events WHERE analysis_id=%s", (result.analysis_id,))
+        existing = cursor.fetchone()
+        if existing:
+            connection.rollback()
+            return int(existing[0])
         predicted = result.prediction.label
         is_correct = None if expected_label is None else predicted == expected_label
 
@@ -127,6 +145,8 @@ def save_detection_result(
                     _json(result.mfcc.model_dump()),
                 ),
             )
+        if periodic_due:
+            cursor.execute("UPDATE analysis_record_schedule SET last_periodic_at=%s WHERE site_id=%s", (now, site_id))
         connection.commit()
         return int(detection_event_id)
     except Exception:
@@ -271,3 +291,71 @@ def safe_list_file_test_results(limit: int = 20) -> list[dict] | None:
     except Exception:
         logger.exception("MySQL 파일 테스트 이력 조회 실패")
         return None
+
+
+_HISTORY_DDL = (
+    """CREATE TABLE IF NOT EXISTS status_history (
+        event_id VARCHAR(64) PRIMARY KEY,
+        occurred_at DATETIME(6) NOT NULL,
+        payload JSON NOT NULL,
+        INDEX idx_status_history_time (occurred_at)
+    )""",
+    """CREATE TABLE IF NOT EXISTS analysis_record_schedule (
+        site_id INT PRIMARY KEY,
+        last_periodic_at DATETIME NULL
+    )""",
+)
+_history_tables_ready = False
+_history_tables_lock = Lock()
+
+
+def _ensure_history_tables(cursor):
+    global _history_tables_ready
+    with _history_tables_lock:
+        if not _history_tables_ready:
+            for statement in _HISTORY_DDL:
+                cursor.execute(statement)
+            _history_tables_ready = True
+
+
+def safe_save_history_events(events):
+    if not db_enabled():
+        return
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        _ensure_history_tables(cursor)
+        for event in events:
+            payload = dict(event)
+            timestamp = payload["timestamp"]
+            payload["timestamp"] = timestamp.isoformat()
+            occurred_at = timestamp.astimezone(timezone.utc).replace(tzinfo=None)
+            cursor.execute(
+                "INSERT INTO status_history (event_id, occurred_at, payload) VALUES (%s,%s,%s) ON DUPLICATE KEY UPDATE event_id=event_id",
+                (event["id"], occurred_at, _json(payload)),
+            )
+        connection.commit()
+    except Exception:
+        if connection is not None:
+            connection.rollback()
+        logger.exception("MySQL 상태 변경 이력 저장 실패")
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None and connection.is_connected():
+            connection.close()
+
+
+def list_status_history(limit=100):
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        _ensure_history_tables(cursor)
+        cursor.execute("SELECT payload FROM status_history ORDER BY occurred_at DESC, event_id DESC LIMIT %s", (limit,))
+        return [row["payload"] if isinstance(row["payload"], dict) else json.loads(row["payload"]) for row in cursor.fetchall()]
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()

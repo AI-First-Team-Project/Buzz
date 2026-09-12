@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query
 
 from ..config import WORKER_STALE_AFTER_SECONDS
-from ..database import list_detection_events, safe_update_gate_status
+from ..database import db_enabled, list_status_history, list_detection_events, safe_update_gate_status
 from ..schemas import DoorCommand, HistoryItem, SiteStatusResponse
 from ..store import get_site, list_history, list_sites, set_door
 
@@ -42,7 +42,19 @@ def status(site_id: int):
 
 @router.get("/history", response_model=list[HistoryItem])
 def history(limit: int = Query(default=100, ge=1, le=500)):
-    return list_history(limit)
+    memory = list_history(limit)
+    if not db_enabled():
+        return memory
+    try:
+        persisted = list_status_history(limit)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="상태 변경 이력을 조회하지 못했습니다.") from exc
+    merged = {item["id"]: item for item in persisted}
+    merged.update({item["id"]: item for item in memory})
+    def event_time(item):
+        value = item["timestamp"]
+        return value.timestamp() if isinstance(value, datetime) else datetime.fromisoformat(value).timestamp()
+    return sorted(merged.values(), key=event_time, reverse=True)[:limit]
 
 
 @router.post("/door/{site_id}", response_model=SiteStatusResponse)

@@ -63,44 +63,11 @@ export async function fetchSiteStatuses() {
 }
 
 export async function fetchHistory(limit = 500) {
-  let historyResponse;
-  let analysisResponse;
-  try {
-    [historyResponse, analysisResponse] = await Promise.all([
-      fetch(`${API_BASE_URL}/api/history?limit=${limit}`),
-      fetch(`${API_BASE_URL}/api/analysis-logs?limit=${limit}`),
-    ]);
-  } catch {
-    throw new Error(`AI 서버에 연결할 수 없습니다. 서버 주소: ${API_BASE_URL}`);
-  }
-  if (!historyResponse.ok) throw new Error(await readError(historyResponse));
-  if (!analysisResponse.ok) throw new Error(await readError(analysisResponse));
-
-  const [history, analysisLogs] = await Promise.all([
-    historyResponse.json(),
-    analysisResponse.json(),
-  ]);
-  if (!Array.isArray(history) || !Array.isArray(analysisLogs)) {
-    throw new Error("이력 응답 형식이 올바르지 않습니다.");
-  }
-
-  const persistedPredictions = analysisLogs.map((item) => ({
-    id: `analysis-${item.analysis_id}`,
-    type: item.prediction === "wasp" ? "danger" : "recovery",
-    site_id: item.site_id,
-    site_name: item.site_id ? `사업장 ${item.site_id}` : "사용자 테스트",
-    title: item.analysis_type === "test" ? "사용자 음원 분석" : "AI 음원 분석",
-    timestamp: item.detected_at,
-    result: item.prediction,
-    confidence: item.confidence,
-    door_status: "OPEN",
-    action: "analysis",
-    analysis_id: item.analysis_id,
-  }));
-
-  return [...history, ...persistedPredictions]
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-    .slice(0, limit);
+  const response = await fetch(`${API_BASE_URL}/api/history?limit=${limit}`);
+  if (!response.ok) throw new Error(await readError(response));
+  const history = await response.json();
+  if (!Array.isArray(history)) throw new Error("이력 응답 형식이 올바르지 않습니다.");
+  return history;
 }
 
 export async function commandDoor(siteId, action) {

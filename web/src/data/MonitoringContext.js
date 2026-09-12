@@ -1,11 +1,11 @@
 import { jsx as _jsx } from "react/jsx-runtime";
 // 모니터링 - 사업장 상태, 위험 알림, 출입문 및 설정 공유
 import { createContext, useContext, useEffect, useState } from 'react';
-import { sites as initialSites, detectionEvents as initialEvents } from './mockData';
+import { sites as initialSites } from './mockData';
 import { commandDoor, fetchHistory, fetchSiteStatuses } from '../api/buzzApi';
 const defaultSettings = { waspAlert: true, vibration: true, autoClose: true, autoCloseThreshold: 85 };
 const storageKey = 'buzz-web-settings-v1';
-const historyStorageKey = 'buzz-web-detection-history-v1';
+const historyStorageKey = 'buzz-web-status-history-v2';
 function loadSettings() {
     try {
         const saved = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
@@ -23,7 +23,7 @@ function loadHistory() {
             return saved;
     }
     catch { /* 저장 이력이 없으면 초기 이력 사용 */ }
-    return initialEvents;
+    return [];
 }
 const Context = createContext(null);
 

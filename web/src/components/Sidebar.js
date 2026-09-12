@@ -8,6 +8,7 @@ const NAV_ITEMS = [
     { to: '/sites', label: '사업장', icon: SiteIcon, end: false },
     { to: '/analysis', label: '분석', icon: AnalysisIcon, end: false },
     { to: '/history', label: '이력', icon: HistoryIcon, end: false },
+    { to: '/analysis-logs', label: '분석 로그', icon: AnalysisIcon, end: false },
     { to: '/settings', label: '설정', icon: SettingsIcon, end: false },
     { to: '/sound-test', label: '테스트', icon: SoundTestIcon, end: false },
 ];
