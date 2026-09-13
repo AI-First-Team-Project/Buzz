@@ -3,7 +3,7 @@ import { jsx as _jsx } from "react/jsx-runtime";
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
-import { App } from './App';
+import { App } from './AppView.jsx';
 import { ResponsiveApp } from './ResponsiveApp';
 import './styles/global.css';
 createRoot(document.getElementById('root')).render(_jsx(StrictMode, { children: _jsx(HashRouter, { children: _jsx(ResponsiveApp, { children: _jsx(App, {}) }) }) }));

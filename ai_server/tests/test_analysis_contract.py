@@ -24,6 +24,12 @@ from app.services.predictor import predict_audio, predict_audio_batch
 
 
 class AnalysisContractTest(unittest.TestCase):
+    def setUp(self):
+        # Contract tests run without a MySQL service; startup restore is tested separately.
+        patcher = patch('app.main.db_enabled', return_value=False)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_upload_response_and_app_adapter(self):
         with TestClient(app) as client:
             before = client.get('/api/status/3').json()
@@ -128,7 +134,7 @@ class AnalysisContractTest(unittest.TestCase):
         self.assertEqual(latest['analysisId'], response.json()[0]['analysis']['analysisId'])
         self.assertEqual(len(latest['waveform']['amplitude']), 1500)
         self.assertEqual(np.asarray(latest['spectrogram']['db']).shape, (128, 96))
-        self.assertNotIn('mfcc', latest)
+        self.assertEqual(np.asarray(latest['mfcc']['coefficients']).shape, (20, 96))
         self.assertEqual(latest, cached_response.json())
         self.assertEqual(latest_response.headers.get('content-encoding'), 'gzip')
 

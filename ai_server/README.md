@@ -37,6 +37,20 @@ python run.py
 - Swagger: `http://localhost:8000/docs`
 - Health: `GET http://localhost:8000/health`
 
+업로드 음원은 최대 30MB까지 받으며 제한을 넘기면 복사 중 즉시 중단합니다. 업로드 파일은
+분석에만 임시로 사용하고 성공·실패 여부와 관계없이 삭제합니다. 분석 결과와 그래프는 기존처럼
+DB에 저장하지만 업로드 파일 경로는 보관하지 않습니다. 서버 경로 분석 API가 참조하는
+원본 파일은 삭제하지 않습니다.
+
+MySQL을 사용하는 실행(`BUZZ_DB_ENABLED=true`)은 시작할 때 마지막 사업장 감지·문 상태를
+`site_runtime_state`에서 복원합니다. 상태를 읽지 못하면 서버가 시작되지 않아 기본
+`NORMAL/OPEN` 값이 실제 상태로 표시되지 않습니다. 이 테이블은 기존 DB에도 자동 생성되며,
+첫 실행에는 기존 `gate_status`·`status_history`·`detection_events`에서 마지막 상태를
+읽습니다. 물리 장치의 현재 위치를 조회하는 기능은 없으므로 복원값은 **마지막으로 저장된
+서버 상태**입니다. 음원 분석이 10초 넘게 갱신되지 않으면 `/api/status`의
+`worker_status`가 `DEGRADED`로 표시됩니다. MySQL 없이 로컬에서 기능을 시험할 때는
+`BUZZ_DB_ENABLED=false`를 명시할 수 있으나 이 경우 재시작 복원은 제공되지 않습니다.
+
 ## 주요 API
 
 ### `GET /health`

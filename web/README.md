@@ -1,29 +1,18 @@
-<!-- 프로젝트 안내 - 웹 실행 방법과 구조 -->
-# BUZZ 웹 대시보드
+# BUZZ 웹 화면
 
-말벌 침입 감지 시스템(`com.buzz.detector`)의 프론트엔드입니다. React + TypeScript + Vite로 작성되었고,
-`vite.config.ts`에서 `base: './'`로 상대 경로 빌드를 하도록 설정되어 있어 Capacitor(`webDir: dist`)로
-그대로 감쌀 수 있습니다.
+`web/`는 PC 대시보드, `android-app/`는 모바일 브라우저 화면의 기준 소스입니다. Docker 웹 이미지는 두 화면을 함께 빌드합니다. 화면 폭이 768px 이하이면 모바일 화면을 표시합니다.
 
-## 실행
+웹 진입점은 `web/src/main.js`입니다. 같은 이름의 과거 TS/TSX 사본은 제거했고, 고유한 TS/TSX 컴포넌트만 남겼습니다. 모바일 진입점은 `android-app/src/main.js`에서 `App.jsx`를 직접 불러옵니다.
 
-```bash
-npm install
-npm run dev       # 개발 서버
-npm run build     # dist/ 생성 (Capacitor sync 대상)
+프로젝트 루트에서 실행합니다.
+
+```powershell
+docker compose up -d --build
 ```
 
-## 구조
+- PC 화면: <http://localhost:5173/>
+- 모바일 화면 직접 확인: <http://localhost:5173/mobile/index.html>
+- Chrome/Edge 개발자 도구에서 기기 화면 크기로 전환해 모바일 화면을 확인할 수 있습니다.
+- 두 화면 모두 같은 출처의 `/api/` 프록시를 통해 FastAPI와 통신합니다.
 
-```
-src/
-  components/   사이드바, 상단바, 카드, 배지 등 공용 UI
-  pages/        대시보드 / 사업장 / AI분석 / 감지 이력 / 설정 / 음원 테스트
-  data/         화면에 쓰이는 목(mock) 데이터
-  types/        도메인 타입 정의
-```
-
-## 상태
-
-현재는 목 데이터로 동작하는 화면 단계입니다. 실제 API 연동 시
-`src/data/mockData.ts`의 데이터 소스를 백엔드(FastAPI) 호출로 교체하면 됩니다.
+로컬 개발 시 `web/`에서 `npm run dev`를 실행합니다. 이때 모바일 번들을 빌드하려면 `android-app/`에도 `npm ci`가 필요합니다. `web/android-app/`과 `web/web/`은 이전 중복 복사본이었고 현재 빌드에서는 사용하지 않습니다.

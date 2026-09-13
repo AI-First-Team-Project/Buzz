@@ -63,8 +63,8 @@ export default function SitePage({ setPage }) {
 
                 <div className="buzz-site-image">
                   <video
-                    src={`/videos/site-${site.id}.mp4`}
-                    poster={`/images/${danger ? "wasp" : site.id === 1 ? "honeybee" : "honeycomb-dark"}.jpg`}
+                    src={`${import.meta.env.BASE_URL}videos/site-${site.id}.mp4`}
+                    poster={`${import.meta.env.BASE_URL}images/${danger ? "wasp" : site.id === 1 ? "honeybee" : "honeycomb-dark"}.jpg`}
                     muted
                     playsInline
                     preload="metadata"

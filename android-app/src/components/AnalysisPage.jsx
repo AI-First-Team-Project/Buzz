@@ -22,7 +22,7 @@ function SiteSelector({ siteId, setSiteId, sites }) {
 }
 
 export default function AnalysisPage({ setPage }) {
-  const { sites } = useSiteStatuses();
+  const { sites, error, lastUpdatedAt } = useSiteStatuses();
   const [siteId, setSiteId] = useState(3);
   const [showDetail, setShowDetail] = useState(true);
   const [analysisBySite, setAnalysisBySite] = useState({});
@@ -31,14 +31,15 @@ export default function AnalysisPage({ setPage }) {
   const data = {
     name: selectedSite?.name ?? `사업장 ${siteId}`,
     status: selectedSite?.status ?? "normal",
-    result: selectedSite?.insect === "wasps" ? "말벌" : "말벌 아님",
+    result: !selectedSite ? "판정 대기" : selectedSite.insect === "wasps" ? "말벌" : "말벌 아님",
     confidence: selectedSite?.confidence ?? 0,
     probs: selectedSite?.probabilities ?? { wasp: 0, nonWasp: 0 },
     analyzedAt: selectedSite?.lastAnalyzedAt ?? "분석 대기 중",
     duration: latestAnalysis ? `${Number(latestAnalysis.audio.duration).toFixed(1)}초` : "최신 데이터 대기",
-    summary: selectedSite?.status === "danger"
-      ? "말벌 위험 상태가 유지되고 있으며 출입문 자동 보호 규칙이 적용됩니다."
-      : "현재 사업장은 정상 상태이며 최신 음원 신호를 표시하고 있습니다.",
+    summary: !selectedSite ? "사업장 상태를 불러오는 중입니다."
+      : selectedSite.status === "danger"
+        ? "말벌 위험 상태가 유지되고 있으며 출입문 자동 보호 규칙이 적용됩니다."
+        : "마지막으로 받은 사업장 상태를 표시합니다.",
   };
   const danger = data.status === "danger";
 
@@ -63,6 +64,11 @@ export default function AnalysisPage({ setPage }) {
           </p>
         </div>
 
+        <div className={`em-connection ${error ? 'error' : ''}`} role={error ? 'alert' : 'status'}>
+          <strong>{error ? '서버 연결 실패 · 마지막 상태 표시 중' : lastUpdatedAt ? '서버 연결됨' : '서버 연결 확인 중'}</strong>
+          <span>마지막 상태 갱신: {lastUpdatedAt ? new Date(lastUpdatedAt).toLocaleString('ko-KR', { hour12: false }) : '없음'}</span>
+        </div>
+
         <SiteSelector siteId={siteId} setSiteId={setSiteId} sites={sites} />
 
         <section className="buzz-metric-grid">
@@ -80,7 +86,7 @@ export default function AnalysisPage({ setPage }) {
               <p className="buzz-kicker">AI 판정 요약</p>
               <h2>{data.name} · 최근 분석</h2>
             </div>
-            <span className={`buzz-status-chip ${danger ? "danger" : ""}`}>{danger ? "위험" : "정상"}</span>
+            <span className={`buzz-status-chip ${danger ? "danger" : ""}`}>{!selectedSite ? "확인 중" : danger ? "위험" : "정상"}</span>
           </div>
 
           <div className="buzz-analysis-result">

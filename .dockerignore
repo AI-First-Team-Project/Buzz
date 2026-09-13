@@ -18,6 +18,7 @@ env
 **/*.ipynb
 **/*.wav
 **/*.mp3
+!android-app/public/audio/*.mp3
 **/*.zip
 **/*.7z
 **/*.tar
@@ -33,11 +34,11 @@ ai_model/outputs
 ai_model/models/*
 !ai_model/models/cnn.keras
 
-# The first Docker milestone contains only the FastAPI runtime and CNN code.
+# Keep the web and mobile browser source for the web image; exclude the
+# native Android project from both image build contexts.
 backend
 database
-web
-android-app
+android-app/android
 docs
 docker
 mysql.sql

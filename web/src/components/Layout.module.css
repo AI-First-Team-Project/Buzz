@@ -20,6 +20,26 @@
   padding: 28px 32px 40px;
 }
 
+.connectionNotice {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 13px;
+}
+
+.connectionError {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+}
+
 @media (max-height: 900px) and (min-width: 901px) {
   .content {
     zoom: 0.9;

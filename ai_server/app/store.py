@@ -3,7 +3,7 @@ from datetime import datetime
 from threading import Lock
 from uuid import uuid4
 
-from .database import safe_save_history_events
+from .database import safe_save_history_events, safe_save_site_runtime_state
 from .schemas import Probabilities
 from .services.state_service import advance_detection_state
 
@@ -52,6 +52,25 @@ _sites = {
 }
 
 _history: list[dict] = []
+
+
+def restore_sites(snapshots: dict[int, dict]) -> None:
+    """Apply persisted site state before the API starts serving requests."""
+    with _lock:
+        for site_id, snapshot in snapshots.items():
+            if site_id not in _sites:
+                continue
+            restored = dict(_sites[site_id])
+            for key in (
+                "status", "door_status", "detected_class", "confidence",
+                "latest_analysis_id", "consecutive_wasp", "consecutive_non_wasp",
+            ):
+                if key in snapshot:
+                    restored[key] = snapshot[key]
+            if snapshot.get("last_analysis_time"):
+                restored["last_analysis_time"] = datetime.fromisoformat(snapshot["last_analysis_time"])
+            restored["probabilities"] = Probabilities.model_validate(snapshot.get("probabilities", {}))
+            _sites[site_id] = restored
 
 
 def _record_events(events):
@@ -169,6 +188,7 @@ def apply_prediction(
                 "analysis_id": analysis_id,
             }])
 
+        safe_save_site_runtime_state(site)
         return deepcopy(site)
 
 
@@ -198,4 +218,5 @@ def set_door(site_id: int, action: str) -> dict:
             "analysis_id": site["latest_analysis_id"],
         }])
 
+        safe_save_site_runtime_state(site)
         return deepcopy(site)

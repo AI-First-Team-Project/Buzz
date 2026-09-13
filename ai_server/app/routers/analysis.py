@@ -1,11 +1,9 @@
-import shutil
 from io import BytesIO
 from pathlib import Path
-from uuid import uuid4
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
-from ..config import ALLOWED_EXTENSIONS, MAX_UPLOAD_BYTES, UPLOAD_DIR
+from ..config import ALLOWED_EXTENSIONS
 from ..database import safe_save_detection_result, safe_update_gate_status
 from ..latest_analysis_store import (
     cache_latest_visualization,
@@ -16,6 +14,7 @@ from ..latest_analysis_store import (
 from ..schemas import AnalysisResponse, AnalyzePathRequest, BatchAnalysisItemResponse, LatestVisualizationResponse
 from ..services.analysis_service import analyze_audio, analyze_audio_batch, create_visualization_response
 from ..store import apply_prediction, get_site
+from ..upload_storage import save_upload
 
 router = APIRouter(prefix="/api", tags=["analysis"])
 
@@ -40,22 +39,7 @@ def _audio_bytes(saved_audio) -> bytes:
 
 
 def _save_upload(file: UploadFile) -> Path:
-    suffix = Path(file.filename or "audio.wav").suffix.lower()
-    if suffix not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="MP3 또는 WAV 파일만 업로드할 수 있습니다.")
-
-    safe_name = f"{uuid4().hex}{suffix}"
-    saved_path = UPLOAD_DIR / safe_name
-    with saved_path.open("wb") as out:
-        shutil.copyfileobj(file.file, out)
-
-    if saved_path.stat().st_size > MAX_UPLOAD_BYTES:
-        saved_path.unlink(missing_ok=True)
-        raise HTTPException(status_code=413, detail="파일 크기는 30MB 이하여야 합니다.")
-
-    named_path = UPLOAD_DIR / f"{uuid4().hex}_{Path(file.filename or 'audio').name}"
-    saved_path.replace(named_path)
-    return named_path
+    return save_upload(file)
 
 
 @router.post("/test/analyze", response_model=AnalysisResponse)
@@ -66,12 +50,13 @@ async def test_analyze(
     """사용자 테스트 전용. 결과는 MySQL에 test 로그로 저장한다."""
     if expected_label not in {None, "wasp", "non_wasp"}:
         raise HTTPException(status_code=400, detail="expected_label은 wasp 또는 non_wasp만 가능합니다.")
+    named_path = None
     try:
         named_path = _save_upload(file)
         result = analyze_audio(named_path, "user_test", file.filename)
         safe_save_detection_result(
             site_id=None,
-            file_path=named_path,
+            file_path=None,
             result=result,
             analysis_type="test",
             expected_label=expected_label,
@@ -81,6 +66,9 @@ async def test_analyze(
         raise
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"오디오 분석 실패: {exc}") from exc
+    finally:
+        if isinstance(named_path, Path):
+            named_path.unlink(missing_ok=True)
 
 
 @router.post("/auto/analyze", response_model=AnalysisResponse)
@@ -89,6 +77,7 @@ async def auto_analyze(
     site_id: int = Form(3),
 ):
     """자동 감지용 직접 업로드 엔드포인트. Kafka 없이 FastAPI가 음원을 직접 수신한다."""
+    named_path = None
     try:
         named_path = _save_upload(file)
         result = analyze_audio(named_path, "auto_detection", file.filename)
@@ -102,7 +91,7 @@ async def auto_analyze(
         )
         safe_save_detection_result(
             site_id=site_id,
-            file_path=named_path,
+            file_path=None,
             result=result,
             analysis_type="live",
             force_record=status_changed,
@@ -114,6 +103,9 @@ async def auto_analyze(
         raise
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"오디오 분석 실패: {exc}") from exc
+    finally:
+        if isinstance(named_path, Path):
+            named_path.unlink(missing_ok=True)
 
 
 @router.post("/auto/analyze-batch", response_model=list[BatchAnalysisItemResponse])
@@ -133,7 +125,8 @@ async def auto_analyze_batch(
 
     saved = []
     try:
-        saved = [(_save_upload(file), file.filename) for file in files]
+        for file in files:
+            saved.append((_save_upload(file), file.filename))
         results = analyze_audio_batch(saved)
         response = []
         for site_id, result, (saved_audio, _) in zip(site_ids, results, saved, strict=True):

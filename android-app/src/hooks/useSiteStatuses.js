@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { fetchSiteStatuses } from "../api/buzzApi";
-import { SITES } from "../types";
 
 
 function percent(value) {
@@ -35,18 +34,9 @@ function adaptSite(site) {
 }
 
 export function useSiteStatuses(pollIntervalMs = 2000) {
-  const [sites, setSites] = useState(() => SITES.map((site) => ({
-    ...site,
-    status: "normal",
-    insect: null,
-    count: 0,
-    confidence: 0,
-    probabilities: { wasp: 0, nonWasp: 0 },
-    door: "open",
-    lastAnalyzedAt: "연결 중",
-    workerStatus: "waiting",
-  })));
+  const [sites, setSites] = useState([]);
   const [error, setError] = useState("");
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -56,6 +46,7 @@ export function useSiteStatuses(pollIntervalMs = 2000) {
         if (!active) return;
         setSites(response.map(adaptSite));
         setError("");
+        setLastUpdatedAt(new Date().toISOString());
       } catch (requestError) {
         if (active) {
           setError(requestError.message || "사업장 상태를 불러오지 못했습니다.");
@@ -76,5 +67,5 @@ export function useSiteStatuses(pollIntervalMs = 2000) {
     };
   }, [pollIntervalMs]);
 
-  return { sites, setSites, error };
+  return { sites, setSites, error, lastUpdatedAt };
 }

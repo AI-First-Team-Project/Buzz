@@ -37,6 +37,7 @@ function mapSite(site) {
         aiConfidence: Math.round((site.confidence ?? 0) * 100),
         door: site.door_status === 'CLOSED' ? 'closed' : 'open',
         lastAnalyzedAt: site.last_analysis_time,
+        workerStatus: site.worker_status,
         photoTone: fallback?.photoTone ?? 'green',
     };
 }
@@ -58,7 +59,8 @@ function mapEvent(event) {
 }
 
 export function MonitoringProvider({ children }) {
-    const [state, setState] = useState(() => ({ sites: initialSites, detectionEvents: loadHistory() }));
+    const [state, setState] = useState(() => ({ sites: [], detectionEvents: loadHistory() }));
+    const [connection, setConnection] = useState({ status: 'loading', lastUpdatedAt: null, historyError: false });
     const [settings, setSettings] = useState(loadSettings);
     const [dangerDeadlines, setDangerDeadlines] = useState({});
     useEffect(() => {
@@ -66,6 +68,9 @@ export function MonitoringProvider({ children }) {
         const refresh = async () => {
             const [sitesResult, historyResult] = await Promise.allSettled([fetchSiteStatuses(), fetchHistory()]);
             if (cancelled) return;
+            setConnection((previous) => sitesResult.status === 'fulfilled'
+                ? { status: 'connected', lastUpdatedAt: new Date().toISOString(), historyError: historyResult.status === 'rejected' }
+                : { ...previous, status: 'disconnected', historyError: historyResult.status === 'rejected' });
             setState((prev) => ({
                 sites: sitesResult.status === 'fulfilled' ? sitesResult.value.map(mapSite) : prev.sites,
                 detectionEvents: historyResult.status === 'fulfilled' ? historyResult.value.map(mapEvent) : prev.detectionEvents,
@@ -161,7 +166,7 @@ export function MonitoringProvider({ children }) {
         });
         return true;
     }
-    return _jsx(Context.Provider, { value: { ...state, settings, saveSettings, setDoor, detect }, children: children });
+    return _jsx(Context.Provider, { value: { ...state, connection, settings, saveSettings, setDoor, detect }, children: children });
 }
 export function useMonitoring() {
     const context = useContext(Context);

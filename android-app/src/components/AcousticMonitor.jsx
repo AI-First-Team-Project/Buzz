@@ -31,7 +31,7 @@ export function AcousticSignal({ seed = 1, danger = false, compact = false }) {
 export default function AcousticMonitor({ siteId, name, danger, onAnalysis, cameraFocusKey }) {
   const [mode, setMode] = useState('camera');
   const videoRef = useRef(null);
-  const videoSrc = `/videos/site-${siteId}.mp4`;
+  const videoSrc = `${import.meta.env.BASE_URL}videos/site-${siteId}.mp4`;
   const videoType = siteId === 3 ? 'video/webm' : 'video/mp4';
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function AcousticMonitor({ siteId, name, danger, onAnalysis, came
       <button type="button" aria-pressed={mode === 'sound'} onClick={() => setMode('sound')}>음향</button>
     </div>
     {mode === 'sound' ? <AcousticSignal seed={siteId} danger={danger} /> : <div>
-      <video ref={videoRef} key={siteId} poster={danger ? '/images/wasp.jpg' : '/images/honeybee.jpg'} autoPlay muted defaultMuted loop playsInline preload="metadata">
+      <video ref={videoRef} key={siteId} poster={`${import.meta.env.BASE_URL}images/${danger ? 'wasp' : 'honeybee'}.jpg`} autoPlay muted defaultMuted loop playsInline preload="metadata">
         <source src={videoSrc} type={videoType} />
       </video>
       <p className="buzz-acoustic-note">사업장 참고 영상</p>

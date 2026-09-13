@@ -1,13 +1,26 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 
 from .routers import analysis, health, monitoring, operations
+from .database import db_enabled, load_site_runtime_states
+from .store import restore_sites
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if db_enabled():
+        # Never serve default NORMAL/OPEN values when persisted state cannot be read.
+        restore_sites(load_site_runtime_states())
+    yield
 
 app = FastAPI(
     title="Buzz AI Sound Detection API",
     description="말벌 포함 여부 이진분류 및 Buzz 앱 연동 API",
     version="0.3.0",
+    lifespan=lifespan,
 )
 
 # 개발 중 React(Vite), Android WebView/Capacitor 연동을 위해 허용.

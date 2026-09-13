@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import timezone
+from datetime import datetime, timezone
 from threading import Lock
 from pathlib import Path
 from typing import Literal
@@ -58,6 +58,113 @@ def get_db_connection():
 
 def _json(value) -> str:
     return json.dumps(value, ensure_ascii=False)
+
+
+_SITE_STATE_DDL = """CREATE TABLE IF NOT EXISTS site_runtime_state (
+    site_id INT PRIMARY KEY,
+    state_json JSON NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT fk_runtime_site FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE
+)"""
+
+
+def save_site_runtime_state(site: dict) -> None:
+    """Save every state change, including detections skipped by periodic log sampling."""
+    payload = {
+        key: value for key, value in site.items()
+        if key not in {"site_name"}
+    }
+    payload["probabilities"] = site["probabilities"].model_dump()
+    if site["last_analysis_time"] is not None:
+        payload["last_analysis_time"] = site["last_analysis_time"].isoformat()
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    try:
+        cursor.execute(
+            """INSERT INTO site_runtime_state (site_id, state_json, updated_at)
+               VALUES (%s, %s, UTC_TIMESTAMP(6))
+               ON DUPLICATE KEY UPDATE state_json=VALUES(state_json), updated_at=VALUES(updated_at)""",
+            (site["site_id"], _json(payload)),
+        )
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()
+
+
+def safe_save_site_runtime_state(site: dict) -> None:
+    if not db_enabled():
+        return
+    try:
+        save_site_runtime_state(site)
+    except Exception:
+        logger.exception("MySQL 사업장 현재 상태 저장 실패: site_id=%s", site["site_id"])
+
+
+def load_site_runtime_states() -> dict[int, dict]:
+    """Restore snapshots, or migrate the last known state from older tables."""
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute(_SITE_STATE_DDL)
+        _ensure_history_tables(cursor)
+        cursor.execute("SELECT site_id, state_json FROM site_runtime_state")
+        snapshots = {
+            row["site_id"]: row["state_json"] if isinstance(row["state_json"], dict)
+            else json.loads(row["state_json"])
+            for row in cursor.fetchall()
+        }
+        for site_id in (1, 2, 3):
+            if site_id in snapshots:
+                continue
+            cursor.execute("SELECT status FROM gate_status WHERE site_id=%s", (site_id,))
+            gate = cursor.fetchone()
+            cursor.execute(
+                """SELECT payload FROM status_history
+                   WHERE JSON_EXTRACT(payload, '$.site_id') = %s
+                     AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.type')) IN ('danger', 'recovery')
+                   ORDER BY occurred_at DESC LIMIT 1""",
+                (site_id,),
+            )
+            transition_row = cursor.fetchone()
+            transition = None
+            if transition_row:
+                value = transition_row["payload"]
+                transition = value if isinstance(value, dict) else json.loads(value)
+            cursor.execute(
+                """SELECT analysis_id, prediction, confidence, wasp_probability,
+                          non_wasp_probability, detected_at
+                   FROM detection_events WHERE site_id=%s AND analysis_type IN ('live', 'simulation')
+                   ORDER BY detected_at DESC, id DESC LIMIT 1""",
+                (site_id,),
+            )
+            detection = cursor.fetchone()
+            if not gate and not transition and not detection:
+                continue
+            snapshots[site_id] = {
+                "site_id": site_id,
+                "status": "DANGER" if transition and transition["type"] == "danger" else "NORMAL",
+                "door_status": "CLOSED" if gate and gate["status"] == "closed" else "OPEN",
+                "detected_class": detection["prediction"] if detection else None,
+                "confidence": float(detection["confidence"] or 0) if detection else 0.0,
+                "probabilities": {
+                    "wasp": float(detection["wasp_probability"] or 0) if detection else 0.0,
+                    "non_wasp": float(detection["non_wasp_probability"] or 0) if detection else 0.0,
+                },
+                "last_analysis_time": detection["detected_at"].replace(tzinfo=datetime.now().astimezone().tzinfo).isoformat() if detection else None,
+                "latest_analysis_id": detection["analysis_id"] if detection else None,
+                "consecutive_wasp": 0,
+                "consecutive_non_wasp": 0,
+            }
+        return snapshots
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()
 
 
 def save_detection_result(

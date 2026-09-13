@@ -1,30 +1,18 @@
 from __future__ import annotations
-import json
-import shutil
 from pathlib import Path
-from uuid import uuid4
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
-from ..config import ALLOWED_EXTENSIONS, MAX_UPLOAD_BYTES, UPLOAD_DIR
 from ..database import safe_save_file_test_result, safe_list_file_test_results
 from ..services.file_test_service import analyze_full_file
 from ..simulator_store import get_state, report, set_enabled
+from ..upload_storage import save_upload
 
 router = APIRouter(prefix="/api", tags=["operations"])
 _memory_tests: list[dict] = []
 
 
 def _save(file: UploadFile) -> Path:
-    suffix = Path(file.filename or "audio.wav").suffix.lower()
-    if suffix not in ALLOWED_EXTENSIONS:
-        raise HTTPException(400, "MP3 또는 WAV 파일만 업로드할 수 있습니다.")
-    path = UPLOAD_DIR / f"{uuid4().hex}_{Path(file.filename or 'audio').name}"
-    with path.open("wb") as out:
-        shutil.copyfileobj(file.file, out)
-    if path.stat().st_size > MAX_UPLOAD_BYTES:
-        path.unlink(missing_ok=True)
-        raise HTTPException(413, "파일 크기는 30MB 이하여야 합니다.")
-    return path
+    return save_upload(file)
 
 @router.get("/simulator/status")
 def simulator_status():

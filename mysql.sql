@@ -109,3 +109,10 @@ CREATE TABLE IF NOT EXISTS analysis_record_schedule (
     site_id INT PRIMARY KEY,
     last_periodic_at DATETIME NULL
 );
+
+CREATE TABLE IF NOT EXISTS site_runtime_state (
+    site_id INT PRIMARY KEY,
+    state_json JSON NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT fk_runtime_site FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE
+);
