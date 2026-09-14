@@ -24,8 +24,8 @@ def _apply_prediction_and_sync_gate(**kwargs) -> bool:
     site_id = kwargs["site_id"]
     previous = get_site(site_id)
     updated = apply_prediction(**kwargs)
-    if previous is not None and previous["door_status"] != "CLOSED" and updated["door_status"] == "CLOSED":
-        safe_update_gate_status(site_id, "closed")
+    if previous is not None and previous["door_status"] != updated["door_status"]:
+        safe_update_gate_status(site_id, updated["door_status"].lower())
     return previous is not None and previous["status"] != updated["status"]
 
 

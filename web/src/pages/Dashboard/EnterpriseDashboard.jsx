@@ -17,7 +17,6 @@ const DASHBOARD_MEL_PALETTE = [
 ];
 const siteNum = (id) => Number(String(id).replace('site-', ''));
 const formatUpdate = (value) => formatOperationalTime(value);
-const classify = (site) => site.aiLabel === 'wasp' ? '말벌' : site.aiLabel === 'bee' ? '꿀벌' : '말벌 아님';
 
 function Icon({ type }) {
   const paths = {
@@ -60,7 +59,7 @@ function MiniHistory({ events, site }) {
 }
 
 export function EnterpriseDashboard() {
-  const { sites, detectionEvents, setDoor } = useMonitoring();
+  const { sites, detectionEvents, settings, settingsLoaded, setDoor } = useMonitoring();
   const [params, setParams] = useSearchParams();
   const requested = siteNum(params.get('site') || sites[0]?.id || 'site-1');
   const site = sites.find((item) => siteNum(item.id) === requested) || sites[0];
@@ -96,8 +95,10 @@ export function EnterpriseDashboard() {
   const normalCount = sites.length - dangerCount;
   const simulatorSite = site ? sim.sites?.[siteNum(site.id)] : null;
   const danger = site?.status === 'danger';
-  const primaryPercent = site?.aiConfidence ?? 0;
-  const latestWasp = site?.aiLabel === 'wasp';
+  const waspProbability = site?.waspProbability ?? 0;
+  const waspPercent = Math.floor(waspProbability);
+  const waspRisk = settingsLoaded && waspProbability >= settings.autoCloseThreshold;
+  const remainingNormal = site ? Math.max(0, site.normalThreshold - site.consecutiveNonWasp) : 0;
   const toggleSimulator = async () => setSim(await (sim.enabled ? stopSimulator() : startSimulator()));
   const videoPath = site ? `${import.meta.env.BASE_URL}videos/site-${siteNum(site.id)}.mp4` : '';
   const recentUpdated = useMemo(() => formatUpdate(site?.lastAnalyzedAt), [site?.lastAnalyzedAt]);
@@ -155,19 +156,25 @@ export function EnterpriseDashboard() {
       </div>
 
       <aside className="ed-side-column">
-        <section className={`ed-side-card ed-ai-card ${latestWasp ? 'danger' : ''}`}>
+        <section className={`ed-side-card ed-ai-card ${!settingsLoaded ? 'pending' : waspRisk ? 'danger' : ''}`}>
           <div className="ed-card-head"><h3>최근 AI 판정 결과</h3></div>
-          <div className="ed-ai-result"><span>{latestWasp ? '!' : '✓'}</span><div><strong>{classify(site)} <b>{primaryPercent}%</b></strong><p>마지막으로 수신한 2초 음원의 이진분류 결과입니다.</p></div></div>
+          <div className="ed-ai-result"><span>{!settingsLoaded ? '…' : waspRisk ? '!' : '✓'}</span><div><strong>말벌 <b>{waspPercent}%</b></strong><p>{!settingsLoaded ? '판정 기준을 불러오는 중입니다.' : `설정 기준 ${settings.autoCloseThreshold}% ${waspRisk ? '이상 · 위험' : '미만 · 안전'}`}</p></div></div>
           <dl className="ed-ai-meta"><div><dt>사업장</dt><dd>{site.name}</dd></div><div><dt>분석 시간</dt><dd>{recentUpdated.time}</dd></div></dl>
-          <div className="ed-confidence"><i style={{ width: `${primaryPercent}%` }}/></div>
+          <div className="ed-confidence"><i style={{ width: `${waspProbability}%` }}/></div>
           <button className="ed-simulator-toggle" onClick={toggleSimulator}>{sim.enabled ? '시뮬레이션 일시정지' : '시뮬레이션 시작'}</button>
         </section>
 
         <section className={`ed-side-card ed-risk-card ${danger ? 'danger' : ''}`}>
-          <div className="ed-card-head"><h3>현재 위험 상태</h3><StatusPill site={site}/></div>
-          <div className="ed-risk-count"><strong>{danger ? '위험 유지 중' : `${site.consecutiveWasp} / ${site.dangerThreshold}`}</strong><span>{danger ? `정상 연속 ${site.consecutiveNonWasp} / ${site.normalThreshold}` : '연속 말벌 감지'}</span></div>
-          <div className="ed-risk-progress"><i style={{width:`${Math.min(100,(danger ? site.consecutiveNonWasp/site.normalThreshold : site.consecutiveWasp/site.dangerThreshold)*100)}%`}}/></div>
-          <p>{danger ? `정상 판정이 ${site.normalThreshold}회 연속되면 위험 상태가 해제됩니다. 문은 자동으로 열리지 않습니다.` : `말벌 판정이 ${site.dangerThreshold}회 연속되면 위험 상태로 전환되고 문이 닫힙니다.`}</p>
+          <div className="ed-card-head"><h3>현장 보호 상태</h3><StatusPill site={site}/></div>
+          {danger ? <>
+            <div className="ed-risk-count"><strong>위험 상태 유지</strong></div>
+            <div className="ed-risk-recovery"><span>정상 복귀 진행</span><b>{site.consecutiveNonWasp} / {site.normalThreshold}회</b></div>
+            <div className="ed-risk-progress" role="progressbar" aria-label="정상 복귀 진행" aria-valuenow={site.consecutiveNonWasp} aria-valuemin={0} aria-valuemax={site.normalThreshold}><i style={{width:`${Math.min(100,site.consecutiveNonWasp/site.normalThreshold*100)}%`}}/></div>
+            <p>{settingsLoaded && !waspRisk && '최근 분석은 판정 기준 미만입니다. '}{`정상 판정 ${remainingNormal}회 더 연속되면 위험이 해제됩니다. 자동 보호로 닫힌 문은 함께 열립니다.`}</p>
+          </> : <>
+            <div className="ed-risk-count"><strong>정상 감시 중</strong></div>
+            <p>{!settingsLoaded ? '말벌 판정 기준을 불러오는 중입니다.' : `말벌 확률 ${settings.autoCloseThreshold}% 이상이 ${site.dangerThreshold}회 연속되면 위험으로 전환됩니다.`}</p>
+          </>}
         </section>
 
         <MiniHistory events={detectionEvents} site={site}/>

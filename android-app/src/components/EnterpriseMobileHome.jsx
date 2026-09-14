@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import BottomNav from './BottomNavV2.jsx';
 import { MelSpectrogram, WaveformChart } from './AudioAnalysisCharts.jsx';
-import { commandDoor, fetchHistory, fetchLatestAnalysis, fetchSiteStatuses } from '../api/buzzApi';
+import { commandDoor, fetchDetectionSettings, fetchHistory, fetchLatestAnalysis, fetchSiteStatuses } from '../api/buzzApi';
 import './EnterpriseMobileHome.css';
 import './EnterpriseMobileB2B.css';
 import './MobileOverflow.css';
@@ -14,7 +14,7 @@ const mapSite = (site) => ({
   danger: site.status === 'DANGER',
   label: site.detected_class,
   confidence: Math.round((site.confidence || 0) * 100),
-  waspProbability: Math.round((site.probabilities?.wasp || 0) * 100),
+  waspProbability: Math.max(0, Math.min(100, (Number(site.probabilities?.wasp) || 0) * 100)),
   nonWaspProbability: Math.round((site.probabilities?.non_wasp || 0) * 100),
   consecutiveWasp: site.consecutive_wasp || 0,
   consecutiveNonWasp: site.consecutive_non_wasp || 0,
@@ -36,13 +36,14 @@ export default function EnterpriseMobileHome({ setPage }) {
   const [selectedId, setSelectedId] = useState(1);
   const [history, setHistory] = useState([]);
   const [analysis, setAnalysis] = useState(null);
+  const [waspThreshold, setWaspThreshold] = useState(null);
   const [error, setError] = useState('');
   const site = useMemo(() => sites.find((item) => item.id === selectedId) || sites[0], [sites, selectedId]);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [siteResult, historyResult] = await Promise.allSettled([fetchSiteStatuses(), fetchHistory(20)]);
+      const [siteResult, historyResult, settingsResult] = await Promise.allSettled([fetchSiteStatuses(), fetchHistory(20), fetchDetectionSettings()]);
       if (cancelled) return;
       if (siteResult.status === 'fulfilled') {
         setSites(siteResult.value.map(mapSite));
@@ -51,6 +52,7 @@ export default function EnterpriseMobileHome({ setPage }) {
         setError(siteResult.reason?.message || '서버 연결을 확인해 주세요.');
       }
       if (historyResult.status === 'fulfilled') setHistory(historyResult.value);
+      if (settingsResult.status === 'fulfilled') setWaspThreshold(settingsResult.value.wasp_threshold_percent);
     };
     void load();
     const timer = window.setInterval(load, 2000);
@@ -89,6 +91,9 @@ export default function EnterpriseMobileHome({ setPage }) {
   const dangerCount = sites.filter((item) => item.danger).length;
   const normalCount = sites.length - dangerCount;
   const recentEvents = history.filter((event) => !event.site_id || event.site_id === site.id).slice(0, 5);
+  const waspRisk = waspThreshold !== null && site.waspProbability >= waspThreshold;
+  const waspPercent = Math.floor(site.waspProbability);
+  const remainingNormal = Math.max(0, site.normalThreshold - site.consecutiveNonWasp);
 
   return <div className="em-page"><main>
     <header className="em-header"><div><small>BUZZ</small><h1>실시간 사업장 모니터링</h1></div><span className={site.danger ? 'danger' : 'normal'}>{site.danger ? '위험' : '정상'}</span></header>
@@ -114,13 +119,24 @@ export default function EnterpriseMobileHome({ setPage }) {
       </div>
     </section>
 
-    <section className={`em-card em-ai ${site.danger ? 'danger' : ''}`}>
+    <section className={`em-card em-ai ${waspThreshold === null ? 'pending' : waspRisk ? 'danger' : ''}`}>
       <header><h2>최근 AI 판정 결과</h2></header>
-      <div className="em-ai-result"><span>{site.danger ? '!' : '✓'}</span><div><strong>{site.label === 'wasp' ? '말벌' : '말벌 아님'} <b>{site.confidence}%</b></strong><p>{site.danger ? '말벌 특징이 높은 음향 패턴입니다.' : '현재 소리는 정상적인 활동으로 판단됩니다.'}</p></div></div>
-      <div className="em-confidence"><i style={{ width: `${site.confidence}%` }}/></div>
+      <div className="em-ai-result"><span>{waspThreshold === null ? '…' : waspRisk ? '!' : '✓'}</span><div><strong>말벌 <b>{waspPercent}%</b></strong><p>{waspThreshold === null ? '판정 기준을 불러오는 중입니다.' : `설정 기준 ${waspThreshold}% ${waspRisk ? '이상 · 위험' : '미만 · 안전'}`}</p></div></div>
+      <div className="em-confidence"><i style={{ width: `${site.waspProbability}%` }}/></div>
     </section>
 
-    <section className={`em-card em-risk ${site.danger ? 'danger' : ''}`}><header><h2>현재 위험 상태</h2><b>{site.danger ? '위험' : '정상'}</b></header><strong>{site.danger ? `정상 연속 ${site.consecutiveNonWasp} / ${site.normalThreshold}` : `말벌 연속 ${site.consecutiveWasp} / ${site.dangerThreshold}`}</strong><p>{site.danger ? `정상 판정이 ${site.normalThreshold}회 연속되면 위험 상태가 해제됩니다. 문은 자동으로 열리지 않습니다.` : `말벌 판정이 ${site.dangerThreshold}회 연속되면 위험 상태로 전환되고 문이 닫힙니다.`}</p></section>
+    <section className={`em-card em-risk ${site.danger ? 'danger' : ''}`}>
+      <header><h2>현장 보호 상태</h2><b>{site.danger ? '위험' : '정상'}</b></header>
+      {site.danger ? <>
+        <strong>위험 상태 유지</strong>
+        <div className="em-risk-recovery"><span>정상 복귀 진행</span><b>{site.consecutiveNonWasp} / {site.normalThreshold}회</b></div>
+        <div className="em-risk-progress" role="progressbar" aria-label="정상 복귀 진행" aria-valuenow={site.consecutiveNonWasp} aria-valuemin={0} aria-valuemax={site.normalThreshold}><i style={{ width: `${Math.min(100, site.consecutiveNonWasp / site.normalThreshold * 100)}%` }}/></div>
+        <p>{waspThreshold !== null && !waspRisk && '최근 분석은 판정 기준 미만입니다. '}{`정상 판정 ${remainingNormal}회 더 연속되면 위험이 해제됩니다. 자동 보호로 닫힌 문은 함께 열립니다.`}</p>
+      </> : <>
+        <strong>정상 감시 중</strong>
+        <p>{waspThreshold === null ? '말벌 판정 기준을 불러오는 중입니다.' : `말벌 확률 ${waspThreshold}% 이상이 ${site.dangerThreshold}회 연속되면 위험으로 전환됩니다.`}</p>
+      </>}
+    </section>
 
     <section className="em-card em-history"><header><h2>최근 감지 이력</h2><button onClick={() => setPage('history')}>전체 보기</button></header>{recentEvents.length ? recentEvents.map((event) => <div key={event.id}><i className={event.type === 'danger' || event.result === 'wasp' ? 'danger' : ''}>{event.type === 'danger' || event.result === 'wasp' ? '!' : '✓'}</i><span><b>{event.title || (event.result === 'wasp' ? '말벌 감지' : '정상 감지')}</b><small>{event.site_name}</small></span><time>{formatTime(event.timestamp)}</time></div>) : <p>아직 감지 이력이 없습니다.</p>}</section>
 

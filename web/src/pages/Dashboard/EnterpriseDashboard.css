@@ -4,3 +4,12 @@
 @media(max-width:700px){.ed-page{padding:0}.ed-summary-grid{grid-template-columns:1fr 1fr;gap:8px}.ed-stat{min-height:80px;padding:12px}.ed-stat-icon{width:42px;height:42px}.ed-stat strong{font-size:20px}.ed-safe-banner{padding:13px}.ed-safe-banner h2{font-size:16px}.ed-safe-banner p{font-size:10px}.ed-monitor-card{padding:10px}.ed-monitor-head{align-items:flex-start;flex-direction:column}.ed-site-tabs{width:100%;display:grid;grid-template-columns:repeat(3,1fr)}.ed-site-tabs button{padding:9px 5px}.ed-video-wrap{min-height:230px}.ed-chart-surface{height:116px}.ed-all-sites{padding:10px}}
 
 .ed-risk-card{border-left:4px solid #25aa60}.ed-risk-card.danger{border-left-color:#ef4a49}.ed-risk-count{display:flex;align-items:baseline;justify-content:space-between;gap:10px}.ed-risk-count strong{font-size:18px;color:#1d3851}.ed-risk-card.danger .ed-risk-count strong{color:#d64241}.ed-risk-count span{font-size:10px;color:#778594}.ed-risk-progress{height:8px;margin:10px 0;border-radius:99px;background:#edf1f3;overflow:hidden}.ed-risk-progress i{display:block;height:100%;border-radius:inherit;background:#25aa60;transition:width .2s}.ed-risk-card.danger .ed-risk-progress i{background:#ef4a49}.ed-risk-card>p{font-size:10px;line-height:1.55;color:#718092}.ed-history-empty{padding:14px 0;text-align:center;color:#84919e;font-size:10px}
+
+.ed-ai-card.pending .ed-ai-result{background:#f3f5f7}
+.ed-ai-card.pending .ed-ai-result>span{background:#9aa5b1}
+.ed-ai-card.pending .ed-ai-result strong b{color:#657384}
+.ed-ai-card.pending .ed-confidence i{background:#9aa5b1}
+
+.ed-risk-recovery{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:12px;color:#526879;font-size:10px}
+.ed-risk-recovery b{color:#168543;font-size:11px;white-space:nowrap}
+.ed-risk-card.danger .ed-risk-progress i{background:#20b86a}

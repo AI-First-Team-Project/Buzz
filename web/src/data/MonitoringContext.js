@@ -25,7 +25,7 @@ function mapSite(site) {
         status: site.status === 'DANGER' ? 'danger' : 'normal',
         aiLabel: site.detected_class === 'wasp' ? 'wasp' : 'non-wasp',
         aiConfidence: Math.round((site.confidence ?? 0) * 100),
-        waspProbability: Math.round((site.probabilities?.wasp ?? 0) * 100),
+        waspProbability: Math.max(0, Math.min(100, (Number(site.probabilities?.wasp) || 0) * 100)),
         nonWaspProbability: Math.round((site.probabilities?.non_wasp ?? 0) * 100),
         consecutiveWasp: site.consecutive_wasp ?? 0,
         consecutiveNonWasp: site.consecutive_non_wasp ?? 0,
@@ -57,8 +57,9 @@ function mapEvent(event) {
 export function MonitoringProvider({ children }) {
     const [state, setState] = useState(() => ({ sites: [], detectionEvents: [] }));
     const [settings, setSettings] = useState(loadSettings);
+    const [settingsLoaded, setSettingsLoaded] = useState(false);
     const [dangerDeadlines, setDangerDeadlines] = useState({});
-    useEffect(() => { fetchDetectionSettings().then(value => setSettings(mapSettings(value))).catch(() => {}); }, []);
+    useEffect(() => { fetchDetectionSettings().then(value => { setSettings(mapSettings(value)); setSettingsLoaded(true); }).catch(() => {}); }, []);
     const refreshMonitoring = async () => {
         const [sitesResult, historyResult] = await Promise.allSettled([fetchSiteStatuses(), fetchHistory()]);
         setState((prev) => ({
@@ -164,10 +165,11 @@ export function MonitoringProvider({ children }) {
         const saved = await saveDetectionSettings({ wasp_alert:next.waspAlert, vibration:next.vibration,
             auto_close:true, wasp_threshold_percent:next.autoCloseThreshold });
         setSettings(mapSettings(saved));
+        setSettingsLoaded(true);
         await refreshMonitoring();
         return true;
     }
-    return _jsx(Context.Provider, { value: { ...state, settings, saveSettings:saveServerSettings, setDoor, detect, refreshMonitoring }, children: children });
+    return _jsx(Context.Provider, { value: { ...state, settings, settingsLoaded, saveSettings:saveServerSettings, setDoor, detect, refreshMonitoring }, children: children });
 }
 export function useMonitoring() {
     const context = useContext(Context);

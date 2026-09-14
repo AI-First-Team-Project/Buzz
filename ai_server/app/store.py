@@ -18,6 +18,7 @@ _sites = {
         "confidence": 0.0,
         "probabilities": Probabilities(non_wasp=0.0, wasp=0.0),
         "door_status": "OPEN",
+        "auto_closed": False,
         "last_analysis_time": None,
         "latest_analysis_id": None,
         "consecutive_wasp": 0,
@@ -31,6 +32,7 @@ _sites = {
         "confidence": 0.0,
         "probabilities": Probabilities(non_wasp=0.0, wasp=0.0),
         "door_status": "OPEN",
+        "auto_closed": False,
         "last_analysis_time": None,
         "latest_analysis_id": None,
         "consecutive_wasp": 0,
@@ -44,6 +46,7 @@ _sites = {
         "confidence": 0.0,
         "probabilities": Probabilities(non_wasp=0.0, wasp=0.0),
         "door_status": "OPEN",
+        "auto_closed": False,
         "last_analysis_time": None,
         "latest_analysis_id": None,
         "consecutive_wasp": 0,
@@ -78,7 +81,7 @@ def register_site(site_id: int, site_name: str) -> dict:
                 "site_id": site_id, "site_name": site_name, "status": "NORMAL",
                 "detected_class": None, "confidence": 0.0,
                 "probabilities": Probabilities(non_wasp=0.0, wasp=0.0),
-                "door_status": "OPEN", "last_analysis_time": None,
+                "door_status": "OPEN", "auto_closed": False, "last_analysis_time": None,
                 "latest_analysis_id": None, "consecutive_wasp": 0,
                 "consecutive_non_wasp": 0,
             }
@@ -98,6 +101,7 @@ def restore_sites(saved_sites: list[dict]) -> None:
                 "confidence": saved.get("confidence", 0.0),
                 "probabilities": Probabilities.model_validate(saved.get("probabilities", {})),
                 "door_status": saved["door_status"],
+                "auto_closed": saved.get("auto_closed", False),
                 "last_analysis_time": datetime.fromisoformat(saved["last_analysis_time"])
                     if saved.get("last_analysis_time") else None,
                 "latest_analysis_id": saved.get("latest_analysis_id"),
@@ -164,6 +168,7 @@ def apply_prediction(
             }]
             if site["door_status"] != "CLOSED":
                 site["door_status"] = "CLOSED"
+                site["auto_closed"] = True
                 events.append({
                     "id": str(uuid4()),
                     "type": "gate",
@@ -180,8 +185,7 @@ def apply_prediction(
             _record_events(events)
 
         elif decision.transition == "recovery":
-            # 정상 복귀가 문 자동 개방을 뜻하지는 않는다. 문은 별도 제어 명령으로 연다.
-            _record_events([{
+            events = [{
                 "id": str(uuid4()),
                 "type": "recovery",
                 "site_id": site_id,
@@ -193,11 +197,29 @@ def apply_prediction(
                 "door_status": site["door_status"],
                 "action": "정상 상태 복귀",
                 "analysis_id": analysis_id,
-            }])
+            }]
+            if site["auto_closed"] and site["door_status"] == "CLOSED":
+                site["door_status"] = "OPEN"
+                events.append({
+                    "id": str(uuid4()),
+                    "type": "gate",
+                    "site_id": site_id,
+                    "site_name": site["site_name"],
+                    "title": "출입문 자동 개방",
+                    "timestamp": timestamp,
+                    "result": class_name,
+                    "confidence": confidence,
+                    "door_status": "OPEN",
+                    "action": "자동 개방",
+                    "analysis_id": analysis_id,
+                })
+            site["auto_closed"] = False
+            _record_events(events)
 
         elif decision.status == "DANGER" and class_name == "wasp" and site["door_status"] == "OPEN":
             # 위험 중 수동 개방 후 말벌이 다시 탐지되면 즉시 재폐쇄한다.
             site["door_status"] = "CLOSED"
+            site["auto_closed"] = True
             _record_events([{
                 "id": str(uuid4()),
                 "type": "gate",
@@ -225,8 +247,12 @@ def set_door(site_id: int, action: str) -> dict:
         now = datetime.now().astimezone()
         target = "OPEN" if action == "open" else "CLOSED"
         if site["door_status"] == target:
+            if site["auto_closed"]:
+                site["auto_closed"] = False
+                safe_save_site_runtime_state(site)
             return deepcopy(site)
         site["door_status"] = target
+        site["auto_closed"] = False
 
         _record_events([{
             "id": str(uuid4()),
