@@ -2,7 +2,7 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useEffect, useState } from 'react';
 import { getSiteRuntimeStatus, setSiteRuntimeStatus } from '../types';
-import BottomNav from './BottomNav';
+import BottomNav from './BottomNavV2.jsx';
 import Icon from './Icon';
 const INIT_GATES = [
     { id: 1, name: '개폐기', site: '사업장 1', status: 'open', mode: 'auto', lastAction: '정상 개방', lastTime: '09:42:14', autoTrigger: '말벌 탐지 시 자동 차단' },

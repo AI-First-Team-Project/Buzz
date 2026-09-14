@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import BottomNav from "./BottomNav";
+import BottomNav from "./BottomNavV2.jsx";
 import "./WebStylePages.css";
 import { fetchHistory } from "../api/buzzApi";
 
