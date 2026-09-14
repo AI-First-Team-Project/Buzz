@@ -3,11 +3,12 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AcousticSignal } from './AcousticSignal.tsx';
 import styles from './AcousticMonitor.module.css';
+import { formatOperationalTime } from '../utils/formatDateTime';
 
 export function AcousticMonitor({ site }) {
   const [mode, setMode] = useState('camera');
   return <section className={styles.monitor}>
-    <div className={styles.heading}><h2>{site.name} · 모니터링</h2><span>{site.lastAnalyzedAt}</span></div>
+    <div className={styles.heading}><h2>{site.name} · 모니터링</h2><span>{formatOperationalTime(site.lastAnalyzedAt).time}</span></div>
     <div className={styles.switch} role="group" aria-label="모니터링 화면 선택">
       <button type="button" aria-pressed={mode === 'camera'} onClick={() => setMode('camera')}>카메라</button>
       <button type="button" aria-pressed={mode === 'sound'} onClick={() => setMode('sound')}>음향</button>

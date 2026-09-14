@@ -98,15 +98,15 @@ function Heatmap({ matrix, palette, symmetric = false, label }) {
   return <canvas ref={canvasRef} className="buzz-api-heatmap" role="img" aria-label={label} />;
 }
 
-const MEL_PALETTE = [[18, 13, 49], [59, 15, 112], [140, 41, 129], [222, 73, 104], [254, 159, 109], [252, 253, 191]];
+const MEL_PALETTE = [[241,247,255],[191,219,254],[103,232,249],[52,211,153],[250,204,21],[251,146,60]];
 const MFCC_PALETTE = [[30, 58, 138], [59, 130, 246], [248, 250, 252], [239, 68, 68], [153, 27, 27]];
 
 export function WaveformChart({ data }) {
-  return <LineChart xValues={data.time} yValues={data.amplitude} symmetric color="#2563eb" label="Waveplot" />;
+  return <LineChart xValues={data.time} yValues={data.amplitude} symmetric color="#20b86a" label="Waveplot" />;
 }
 
 export function SpectrumChart({ data }) {
-  return <LineChart xValues={data.frequency} yValues={data.magnitudeDb} color="#0ea5e9" label="FFT Spectrum" />;
+  return <LineChart xValues={data.frequency} yValues={data.magnitudeDb} color="#2f7fd6" label="FFT Spectrum" />;
 }
 
 export function MelSpectrogram({ data }) {

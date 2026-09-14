@@ -70,6 +70,14 @@ export async function fetchHistory(limit = 500) {
   return history;
 }
 
+export async function fetchAnalysisLogs(limit = 20) {
+  const response = await fetch(`${API_BASE_URL}/api/analysis-logs?limit=${limit}`);
+  if (!response.ok) throw new Error(await readError(response));
+  const rows = await response.json();
+  if (!Array.isArray(rows)) throw new Error('시스템 로그 응답 형식이 올바르지 않습니다.');
+  return rows;
+}
+
 export async function commandDoor(siteId, action) {
   let response;
   try {

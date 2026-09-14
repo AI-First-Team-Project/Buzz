@@ -47,7 +47,7 @@ export function SignalLineChart({ xValues, yValues, symmetric = false, color, la
         viewBox: `0 0 ${WIDTH} ${HEIGHT}`,
         role: 'img',
         'aria-label': label,
-        children: _jsx('path', { d: path, stroke: color }),
+        children: _jsx('path', { d: path, stroke: color, fill: 'none', strokeWidth: 2, vectorEffect: 'non-scaling-stroke' }),
     });
 }
 
@@ -100,4 +100,4 @@ export function SignalHeatmap({ matrix, palette, symmetric = false, label }) {
     return _jsx('canvas', { ref: canvasRef, className: styles.liveHeatmap, role: 'img', 'aria-label': label });
 }
 
-export const MEL_PALETTE = [[18, 13, 49], [59, 15, 112], [140, 41, 129], [222, 73, 104], [254, 159, 109], [252, 253, 191]];
+export const MEL_PALETTE = [[241,247,255],[191,219,254],[103,232,249],[52,211,153],[250,204,21],[251,146,60]];

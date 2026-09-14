@@ -200,21 +200,45 @@ def safe_update_gate_status(site_id: int, status: Literal["open", "closed"]) -> 
         logger.exception("MySQL 문 상태 저장 실패: site_id=%s", site_id)
 
 
-def list_detection_events(limit: int = 100, analysis_type: str | None = None) -> list[dict]:
+def list_detection_events(
+    limit: int = 100,
+    analysis_type: str | None = None,
+    site_id: int | None = None,
+    prediction: str | None = None,
+    start_at=None,
+    end_at=None,
+) -> list[dict]:
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
     try:
         sql = """
-            SELECT id, analysis_id, site_id, analysis_type, original_file_name,
+            SELECT detection_events.id, analysis_id, site_id, sites.name AS site_name,
+                   analysis_type, original_file_name,
                    expected_label, prediction, is_correct, confidence,
                    wasp_probability, non_wasp_probability, model_name, source,
                    detected_at
             FROM detection_events
+            LEFT JOIN sites ON sites.id = detection_events.site_id
         """
         values: list[object] = []
+        conditions = []
         if analysis_type:
-            sql += " WHERE analysis_type = %s"
+            conditions.append("detection_events.analysis_type = %s")
             values.append(analysis_type)
+        if site_id is not None:
+            conditions.append("detection_events.site_id = %s")
+            values.append(site_id)
+        if prediction:
+            conditions.append("detection_events.prediction = %s")
+            values.append(prediction)
+        if start_at is not None:
+            conditions.append("detection_events.detected_at >= %s")
+            values.append(start_at)
+        if end_at is not None:
+            conditions.append("detection_events.detected_at <= %s")
+            values.append(end_at)
+        if conditions:
+            sql += " WHERE " + " AND ".join(conditions)
         sql += " ORDER BY detected_at DESC LIMIT %s"
         values.append(limit)
         cursor.execute(sql, tuple(values))
@@ -355,6 +379,154 @@ def list_status_history(limit=100):
         _ensure_history_tables(cursor)
         cursor.execute("SELECT payload FROM status_history ORDER BY occurred_at DESC, event_id DESC LIMIT %s", (limit,))
         return [row["payload"] if isinstance(row["payload"], dict) else json.loads(row["payload"]) for row in cursor.fetchall()]
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()
+
+
+def get_detection_event_detail(event_id: int) -> dict | None:
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT detection_events.*, sites.name AS site_name,
+                   analysis_graph_data.waveform, analysis_graph_data.fft,
+                   analysis_graph_data.spectrogram, analysis_graph_data.mfcc
+            FROM detection_events
+            LEFT JOIN sites ON sites.id = detection_events.site_id
+            LEFT JOIN analysis_graph_data
+              ON analysis_graph_data.detection_event_id = detection_events.id
+            WHERE detection_events.id = %s
+            """,
+            (event_id,),
+        )
+        row = cursor.fetchone()
+        if row:
+            for key in ("waveform", "fft", "spectrogram", "mfcc"):
+                if row[key] is not None and not isinstance(row[key], (dict, list)):
+                    row[key] = json.loads(row[key])
+        return row
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()
+
+
+def _ensure_report_table(cursor) -> None:
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS report_history (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            site_id INT NULL,
+            period_start DATETIME NOT NULL,
+            period_end DATETIME NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            file_name VARCHAR(255) NOT NULL,
+            report_type ENUM('pdf','csv') NOT NULL,
+            filters_json JSON NULL,
+            CONSTRAINT fk_report_site FOREIGN KEY (site_id) REFERENCES sites(id),
+            INDEX idx_report_created (created_at)
+        )
+    """)
+
+
+def save_report_record(site_id, period_start, period_end, file_name, report_type, filters):
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        _ensure_report_table(cursor)
+        cursor.execute(
+            """INSERT INTO report_history
+               (site_id, period_start, period_end, file_name, report_type, filters_json)
+               VALUES (%s,%s,%s,%s,%s,%s)""",
+            (site_id, period_start, period_end, file_name, report_type, _json(filters)),
+        )
+        connection.commit()
+        cursor.execute("SELECT * FROM report_history WHERE id=%s", (cursor.lastrowid,))
+        return cursor.fetchone()
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()
+
+
+def list_report_records(limit=100):
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        _ensure_report_table(cursor)
+        cursor.execute("""
+            SELECT report_history.*, sites.name AS site_name
+            FROM report_history LEFT JOIN sites ON sites.id=report_history.site_id
+            ORDER BY created_at DESC LIMIT %s
+        """, (limit,))
+        return list(cursor.fetchall())
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()
+
+
+def list_status_history_since(since_utc, site_id: int | None = None):
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        _ensure_history_tables(cursor)
+        sql = "SELECT occurred_at, payload FROM status_history WHERE occurred_at >= %s"
+        values = [since_utc]
+        if site_id is not None:
+            sql += " AND CAST(JSON_UNQUOTE(JSON_EXTRACT(payload, '$.site_id')) AS UNSIGNED) = %s"
+            values.append(site_id)
+        sql += " ORDER BY occurred_at ASC, event_id ASC"
+        cursor.execute(sql, tuple(values))
+        rows = []
+        for row in cursor.fetchall():
+            payload = row["payload"] if isinstance(row["payload"], dict) else json.loads(row["payload"])
+            payload["_occurred_at_utc"] = row["occurred_at"].isoformat()
+            rows.append(payload)
+        return rows
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()
+
+
+def list_site_records() -> list[dict]:
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute("SHOW COLUMNS FROM sites LIKE 'description'")
+        if cursor.fetchone() is None:
+            cursor.execute("ALTER TABLE sites ADD COLUMN description VARCHAR(500) NULL AFTER location")
+            connection.commit()
+        cursor.execute("SELECT id, name, location, description, created_at FROM sites ORDER BY id")
+        return list(cursor.fetchall())
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()
+
+
+def create_site_record(name: str, location: str, description: str | None) -> dict:
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute("SHOW COLUMNS FROM sites LIKE 'description'")
+        if cursor.fetchone() is None:
+            cursor.execute("ALTER TABLE sites ADD COLUMN description VARCHAR(500) NULL AFTER location")
+        cursor.execute(
+            "INSERT INTO sites (name, location, description) VALUES (%s, %s, %s)",
+            (name.strip(), location.strip(), description.strip() if description else None),
+        )
+        site_id = cursor.lastrowid
+        cursor.execute("INSERT INTO gate_status (site_id, status) VALUES (%s, 'open')", (site_id,))
+        connection.commit()
+        cursor.execute("SELECT id, name, location, description, created_at FROM sites WHERE id=%s", (site_id,))
+        return cursor.fetchone()
+    except Exception:
+        connection.rollback()
+        raise
     finally:
         cursor.close()
         if connection.is_connected():

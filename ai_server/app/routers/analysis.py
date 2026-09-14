@@ -105,7 +105,7 @@ async def auto_analyze(
             file_path=named_path,
             result=result,
             analysis_type="live",
-            force_record=status_changed,
+            force_record=status_changed and result.prediction.label == "wasp",
         )
         return result
     except KeyError:
@@ -150,7 +150,7 @@ async def auto_analyze_batch(
                 file_path=None,
                 result=result,
                 analysis_type="simulation",
-                force_record=status_changed,
+                force_record=status_changed and result.prediction.label == "wasp",
             )
             set_latest_analysis_source(site_id, result, _audio_bytes(saved_audio))
             response.append(BatchAnalysisItemResponse(siteId=site_id, analysis=result))
@@ -210,7 +210,7 @@ def analyze_file_from_path(payload: AnalyzePathRequest):
             file_path=audio_path,
             result=result,
             analysis_type="live",
-            force_record=status_changed,
+            force_record=status_changed and result.prediction.label == "wasp",
         )
         return result
     except KeyError:

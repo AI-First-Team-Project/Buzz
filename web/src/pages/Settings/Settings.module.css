@@ -21,7 +21,7 @@
 .card:nth-child(2) { order: 3; }
 .card:nth-child(3) {
   order: 1;
-  background: linear-gradient(135deg, #fffdf7, var(--card-bg));
+  background: var(--card-bg);
 }
 .card:nth-child(4) { order: 4; }
 

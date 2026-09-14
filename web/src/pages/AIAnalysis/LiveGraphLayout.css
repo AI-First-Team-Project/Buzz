@@ -1,0 +1,5 @@
+.la-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.la-grid .la-waveform-card{grid-column:1/-1;min-height:260px}
+.la-grid .la-waveform-card svg{height:180px!important}
+.la-grid .la-mel-card,.la-grid .la-frequency-card{min-height:300px}
+@media(max-width:900px){.la-grid{grid-template-columns:1fr}.la-grid .la-waveform-card{grid-column:1}.la-grid .la-mel-card,.la-grid .la-frequency-card{min-height:260px}}

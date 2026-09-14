@@ -5,5 +5,6 @@ import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
 import { App } from './App';
 import { ResponsiveApp } from './ResponsiveApp';
+import { AppErrorBoundary } from './components/AppErrorBoundary.jsx';
 import './styles/global.css';
-createRoot(document.getElementById('root')).render(_jsx(StrictMode, { children: _jsx(HashRouter, { children: _jsx(ResponsiveApp, { children: _jsx(App, {}) }) }) }));
+createRoot(document.getElementById('root')).render(_jsx(StrictMode, { children: _jsx(AppErrorBoundary, { children: _jsx(HashRouter, { children: _jsx(ResponsiveApp, { children: _jsx(App, {}) }) }) }) }));

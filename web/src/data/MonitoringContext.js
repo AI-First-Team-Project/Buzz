@@ -1,11 +1,9 @@
 import { jsx as _jsx } from "react/jsx-runtime";
 // 모니터링 - 사업장 상태, 위험 알림, 출입문 및 설정 공유
 import { createContext, useContext, useEffect, useState } from 'react';
-import { sites as initialSites } from './mockData';
 import { commandDoor, fetchHistory, fetchSiteStatuses } from '../api/buzzApi';
 const defaultSettings = { waspAlert: true, vibration: true, autoClose: true, autoCloseThreshold: 85 };
 const storageKey = 'buzz-web-settings-v1';
-const historyStorageKey = 'buzz-web-status-history-v2';
 function loadSettings() {
     try {
         const saved = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
@@ -16,19 +14,9 @@ function loadSettings() {
     catch { /* 저장소를 사용할 수 없으면 기본 설정 사용 */ }
     return defaultSettings;
 }
-function loadHistory() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(historyStorageKey) ?? 'null');
-        if (Array.isArray(saved))
-            return saved;
-    }
-    catch { /* 저장 이력이 없으면 초기 이력 사용 */ }
-    return [];
-}
 const Context = createContext(null);
 
 function mapSite(site) {
-    const fallback = initialSites.find((item) => item.id === `site-${site.site_id}`);
     return {
         id: `site-${site.site_id}`,
         name: site.site_name,
@@ -37,7 +25,7 @@ function mapSite(site) {
         aiConfidence: Math.round((site.confidence ?? 0) * 100),
         door: site.door_status === 'CLOSED' ? 'closed' : 'open',
         lastAnalyzedAt: site.last_analysis_time,
-        photoTone: fallback?.photoTone ?? 'green',
+        photoTone: 'green',
     };
 }
 
@@ -58,9 +46,16 @@ function mapEvent(event) {
 }
 
 export function MonitoringProvider({ children }) {
-    const [state, setState] = useState(() => ({ sites: initialSites, detectionEvents: loadHistory() }));
+    const [state, setState] = useState(() => ({ sites: [], detectionEvents: [] }));
     const [settings, setSettings] = useState(loadSettings);
     const [dangerDeadlines, setDangerDeadlines] = useState({});
+    const refreshMonitoring = async () => {
+        const [sitesResult, historyResult] = await Promise.allSettled([fetchSiteStatuses(), fetchHistory()]);
+        setState((prev) => ({
+            sites: sitesResult.status === 'fulfilled' ? sitesResult.value.map(mapSite) : prev.sites,
+            detectionEvents: historyResult.status === 'fulfilled' ? historyResult.value.map(mapEvent) : prev.detectionEvents,
+        }));
+    };
     useEffect(() => {
         let cancelled = false;
         const refresh = async () => {
@@ -75,12 +70,6 @@ export function MonitoringProvider({ children }) {
         const timer = window.setInterval(refresh, 2000);
         return () => { cancelled = true; window.clearInterval(timer); };
     }, []);
-    useEffect(() => {
-        try {
-            localStorage.setItem(historyStorageKey, JSON.stringify(state.detectionEvents));
-        }
-        catch { /* 브라우저 저장소를 사용할 수 없으면 현재 세션에서 유지 */ }
-    }, [state.detectionEvents]);
     useEffect(() => {
         const timers = Object.entries(dangerDeadlines).map(([id, deadline]) => window.setTimeout(() => {
             detect(id, 'wasp', 97);
@@ -161,7 +150,7 @@ export function MonitoringProvider({ children }) {
         });
         return true;
     }
-    return _jsx(Context.Provider, { value: { ...state, settings, saveSettings, setDoor, detect }, children: children });
+    return _jsx(Context.Provider, { value: { ...state, settings, saveSettings, setDoor, detect, refreshMonitoring }, children: children });
 }
 export function useMonitoring() {
     const context = useContext(Context);

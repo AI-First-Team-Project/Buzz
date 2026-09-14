@@ -19,6 +19,24 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+:root {
+  --buzz-bg: var(--app-bg);
+  --buzz-surface: var(--card-bg);
+  --buzz-sidebar: var(--sidebar-bg);
+  --buzz-primary: #142f4f;
+  --buzz-accent: var(--brand-yellow);
+  --buzz-success: var(--success);
+  --buzz-danger: var(--danger);
+  --buzz-text: var(--text-primary);
+  --buzz-muted: var(--text-muted);
+  --buzz-border: var(--border);
+}
+
+button, select, input { min-height: 40px; }
+button { transition: background-color .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease; }
+button:not(:disabled):hover { filter: brightness(.97); }
+button:disabled { cursor: not-allowed; opacity: .55; }
+
 button {
   font-family: inherit;
 }

@@ -36,8 +36,6 @@ ai_model/models/*
 # The first Docker milestone contains only the FastAPI runtime and CNN code.
 backend
 database
-web
-android-app
 docs
 docker
 mysql.sql
