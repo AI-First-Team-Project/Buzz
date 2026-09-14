@@ -21,9 +21,22 @@ from app.config import AI_MODEL_NAME
 from app.schemas import PredictionInfo
 from app.services.analysis_service import create_visualization_response
 from app.services.predictor import predict_audio, predict_audio_batch
+from app.routers.analysis import _apply_prediction_and_sync_gate
 
 
 class AnalysisContractTest(unittest.TestCase):
+    def test_recovery_opens_persisted_gate_status(self):
+        previous = {'status': 'DANGER', 'door_status': 'CLOSED'}
+        recovered = {'status': 'NORMAL', 'door_status': 'OPEN'}
+        with (
+            patch('app.routers.analysis.get_site', return_value=previous),
+            patch('app.routers.analysis.apply_prediction', return_value=recovered),
+            patch('app.routers.analysis.safe_update_gate_status') as save_gate,
+        ):
+            changed = _apply_prediction_and_sync_gate(site_id=1)
+        self.assertTrue(changed)
+        save_gate.assert_called_once_with(1, 'open')
+
     def test_upload_response_and_app_adapter(self):
         with TestClient(app) as client:
             before = client.get('/api/status/3').json()
