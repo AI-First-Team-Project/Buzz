@@ -117,6 +117,8 @@ class SiteStatusResponse(BaseModel):
     latest_analysis_id: str | None
     consecutive_wasp: int = Field(ge=0)
     consecutive_non_wasp: int = Field(ge=0)
+    danger_consecutive_threshold: int = Field(ge=1)
+    normal_consecutive_threshold: int = Field(ge=1)
     worker_status: WorkerState
     last_analysis_age_seconds: float | None = Field(default=None, ge=0)
 

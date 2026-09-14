@@ -3,7 +3,7 @@ from datetime import datetime
 from threading import Lock
 from uuid import uuid4
 
-from .database import safe_save_history_events
+from .database import safe_save_history_events, safe_save_site_runtime_state
 from .schemas import Probabilities
 from .services.state_service import advance_detection_state
 
@@ -83,6 +83,35 @@ def register_site(site_id: int, site_name: str) -> dict:
                 "consecutive_non_wasp": 0,
             }
         return deepcopy(_sites[site_id])
+
+
+def restore_sites(saved_sites: list[dict]) -> None:
+    """Restore persisted state after DB sites have been registered."""
+    with _lock:
+        for saved in saved_sites:
+            site_id = int(saved.get("site_id", 0))
+            if site_id not in _sites:
+                continue
+            _sites[site_id].update({
+                "status": saved["status"],
+                "detected_class": saved.get("detected_class"),
+                "confidence": saved.get("confidence", 0.0),
+                "probabilities": Probabilities.model_validate(saved.get("probabilities", {})),
+                "door_status": saved["door_status"],
+                "last_analysis_time": datetime.fromisoformat(saved["last_analysis_time"])
+                    if saved.get("last_analysis_time") else None,
+                "latest_analysis_id": saved.get("latest_analysis_id"),
+                "consecutive_wasp": saved.get("consecutive_wasp", 0),
+                "consecutive_non_wasp": saved.get("consecutive_non_wasp", 0),
+            })
+
+
+def reset_detection_streaks() -> None:
+    with _lock:
+        for site in _sites.values():
+            site["consecutive_wasp"] = 0
+            site["consecutive_non_wasp"] = 0
+            safe_save_site_runtime_state(site)
 
 
 def list_history(limit: int = 100) -> list[dict]:
@@ -183,6 +212,7 @@ def apply_prediction(
                 "analysis_id": analysis_id,
             }])
 
+        safe_save_site_runtime_state(site)
         return deepcopy(site)
 
 
@@ -211,5 +241,5 @@ def set_door(site_id: int, action: str) -> dict:
             "action": "수동 개방" if action == "open" else "수동 폐쇄",
             "analysis_id": site["latest_analysis_id"],
         }])
-
+        safe_save_site_runtime_state(site)
         return deepcopy(site)

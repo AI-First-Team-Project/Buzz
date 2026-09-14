@@ -53,11 +53,11 @@ function SiteOverview({ site, selected, onClick }) {
   </button>;
 }
 
-function MiniHistory({ events }) {
+function MiniHistory({ events, site }) {
   return <section className="ed-side-card ed-history-card">
     <div className="ed-card-head"><h3>최근 감지 이력</h3><span>실시간</span></div>
     <div className="ed-history-list">
-      {events.slice(0, 5).map((event) => {
+      {events.filter((event) => event.siteId === site.id).slice(0, 5).map((event) => {
         const danger = event.kind === 'danger' || event.aiClassification === 'wasp';
         return <div className="ed-history-row" key={event.id}>
           <span className={`ed-history-dot ${danger ? 'danger' : ''}`}>{danger ? '!' : '✓'}</span>
@@ -65,6 +65,7 @@ function MiniHistory({ events }) {
           <time>{event.time}</time>
         </div>;
       })}
+      {!events.some((event) => event.siteId === site.id) && <p className="ed-history-empty">이 사업장의 상태 변경 이력이 없습니다.</p>}
     </div>
   </section>;
 }
@@ -107,9 +108,7 @@ export function EnterpriseDashboard() {
   const simulatorSite = site ? sim.sites?.[siteNum(site.id)] : null;
   const danger = site?.status === 'danger';
   const primaryPercent = site?.aiConfidence ?? 0;
-  const waspPct = site?.aiLabel === 'wasp' ? primaryPercent : Math.max(1, Math.round((100 - primaryPercent) * 0.35));
-  const otherPct = Math.max(0, 100 - primaryPercent - waspPct);
-  const normalPct = Math.max(0, 100 - waspPct - otherPct);
+  const latestWasp = site?.aiLabel === 'wasp';
   const toggleSimulator = async () => setSim(await (sim.enabled ? stopSimulator() : startSimulator()));
   const videoPath = site ? `${import.meta.env.BASE_URL}videos/site-${siteNum(site.id)}.mp4` : '';
   const statusText = danger ? '위험 상태를 확인해 주세요.' : '현재 모든 사업장이 안전합니다.';
@@ -175,15 +174,21 @@ export function EnterpriseDashboard() {
       </div>
 
       <aside className="ed-side-column">
-        <section className={`ed-side-card ed-ai-card ${danger ? 'danger' : ''}`}>
+        <section className={`ed-side-card ed-ai-card ${latestWasp ? 'danger' : ''}`}>
           <div className="ed-card-head"><h3>최근 AI 판정 결과</h3></div>
-          <div className="ed-ai-result"><span>{danger ? '!' : '✓'}</span><div><strong>{classify(site)} <b>{primaryPercent}%</b></strong><p>{danger ? '말벌 특징이 높은 음향 패턴입니다.' : '현재 소리는 정상적인 꿀벌 활동으로 판단됩니다.'}</p></div></div>
+          <div className="ed-ai-result"><span>{latestWasp ? '!' : '✓'}</span><div><strong>{classify(site)} <b>{primaryPercent}%</b></strong><p>마지막으로 수신한 2초 음원의 이진분류 결과입니다.</p></div></div>
           <div className="ed-confidence"><i style={{ width: `${primaryPercent}%` }}/></div>
-          <div className="ed-probs"><div><i className="green"/><span>말벌 아님</span><b>{danger ? normalPct : primaryPercent}%</b></div><div><i className="yellow"/><span>말벌 의심</span><b>{waspPct}%</b></div><div><i className="gray"/><span>기타 소리</span><b>{otherPct}%</b></div></div>
           <button className="ed-simulator-toggle" onClick={toggleSimulator}>{sim.enabled ? '시뮬레이션 일시정지' : '시뮬레이션 시작'}</button>
         </section>
 
-        <MiniHistory events={detectionEvents}/>
+        <section className={`ed-side-card ed-risk-card ${danger ? 'danger' : ''}`}>
+          <div className="ed-card-head"><h3>현재 위험 상태</h3><StatusPill site={site}/></div>
+          <div className="ed-risk-count"><strong>{danger ? '위험 유지 중' : `${site.consecutiveWasp} / ${site.dangerThreshold}`}</strong><span>{danger ? `정상 연속 ${site.consecutiveNonWasp} / ${site.normalThreshold}` : '연속 말벌 감지'}</span></div>
+          <div className="ed-risk-progress"><i style={{width:`${Math.min(100,(danger ? site.consecutiveNonWasp/site.normalThreshold : site.consecutiveWasp/site.dangerThreshold)*100)}%`}}/></div>
+          <p>{danger ? `정상 판정이 ${site.normalThreshold}회 연속되면 위험 상태가 해제됩니다. 문은 자동으로 열리지 않습니다.` : `말벌 판정이 ${site.dangerThreshold}회 연속되면 위험 상태로 전환되고 문이 닫힙니다.`}</p>
+        </section>
+
+        <MiniHistory events={detectionEvents} site={site}/>
 
       </aside>
     </section>

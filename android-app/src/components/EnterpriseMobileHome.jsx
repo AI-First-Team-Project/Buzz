@@ -5,6 +5,7 @@ import { commandDoor, fetchHistory, fetchLatestAnalysis, fetchSiteStatuses } fro
 import './EnterpriseMobileHome.css';
 import './EnterpriseMobileB2B.css';
 import './MobileOverflow.css';
+import './RiskStatus.css';
 
 const mapSite = (site) => ({
   id: site.site_id,
@@ -12,6 +13,12 @@ const mapSite = (site) => ({
   danger: site.status === 'DANGER',
   label: site.detected_class,
   confidence: Math.round((site.confidence || 0) * 100),
+  waspProbability: Math.round((site.probabilities?.wasp || 0) * 100),
+  nonWaspProbability: Math.round((site.probabilities?.non_wasp || 0) * 100),
+  consecutiveWasp: site.consecutive_wasp || 0,
+  consecutiveNonWasp: site.consecutive_non_wasp || 0,
+  dangerThreshold: site.danger_consecutive_threshold || 3,
+  normalThreshold: site.normal_consecutive_threshold || 3,
   door: site.door_status,
   updatedAt: site.last_analysis_time,
 });
@@ -80,9 +87,6 @@ export default function EnterpriseMobileHome({ setPage }) {
 
   const dangerCount = sites.filter((item) => item.danger).length;
   const normalCount = sites.length - dangerCount;
-  const waspPct = site.label === 'wasp' ? site.confidence : Math.max(1, Math.round((100 - site.confidence) * 0.35));
-  const otherPct = Math.max(0, 100 - site.confidence - waspPct);
-  const normalPct = Math.max(0, 100 - waspPct - otherPct);
   const recentEvents = history.filter((event) => !event.site_id || event.site_id === site.id).slice(0, 5);
 
   return <div className="em-page"><main>
@@ -113,8 +117,9 @@ export default function EnterpriseMobileHome({ setPage }) {
       <header><h2>최근 AI 판정 결과</h2></header>
       <div className="em-ai-result"><span>{site.danger ? '!' : '✓'}</span><div><strong>{site.label === 'wasp' ? '말벌' : '말벌 아님'} <b>{site.confidence}%</b></strong><p>{site.danger ? '말벌 특징이 높은 음향 패턴입니다.' : '현재 소리는 정상적인 활동으로 판단됩니다.'}</p></div></div>
       <div className="em-confidence"><i style={{ width: `${site.confidence}%` }}/></div>
-      <div className="em-probs"><span>말벌 아님 <b>{site.danger ? normalPct : site.confidence}%</b></span><span>말벌 의심 <b>{waspPct}%</b></span><span>기타 소리 <b>{otherPct}%</b></span></div>
     </section>
+
+    <section className={`em-card em-risk ${site.danger ? 'danger' : ''}`}><header><h2>현재 위험 상태</h2><b>{site.danger ? '위험' : '정상'}</b></header><strong>{site.danger ? `정상 연속 ${site.consecutiveNonWasp} / ${site.normalThreshold}` : `말벌 연속 ${site.consecutiveWasp} / ${site.dangerThreshold}`}</strong><p>{site.danger ? `정상 판정이 ${site.normalThreshold}회 연속되면 위험 상태가 해제됩니다. 문은 자동으로 열리지 않습니다.` : `말벌 판정이 ${site.dangerThreshold}회 연속되면 위험 상태로 전환되고 문이 닫힙니다.`}</p></section>
 
     <section className="em-card em-history"><header><h2>최근 감지 이력</h2><button onClick={() => setPage('history')}>전체 보기</button></header>{recentEvents.length ? recentEvents.map((event) => <div key={event.id}><i className={event.type === 'danger' || event.result === 'wasp' ? 'danger' : ''}>{event.type === 'danger' || event.result === 'wasp' ? '!' : '✓'}</i><span><b>{event.title || (event.result === 'wasp' ? '말벌 감지' : '정상 감지')}</b><small>{event.site_name}</small></span><time>{formatTime(event.timestamp)}</time></div>) : <p>아직 감지 이력이 없습니다.</p>}</section>
 

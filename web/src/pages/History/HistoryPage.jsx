@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { fetchAnalysisLogDetail, fetchAnalysisLogs, fetchReports, saveReport } from '../../api/buzzApi';
@@ -13,9 +14,11 @@ const startOf=date=>`${date}T00:00:00`;
 const endOf=date=>`${date}T23:59:59.999`;
 
 export function HistoryPage(){
+ const [searchParams]=useSearchParams();
  const {sites}=useMonitoring();const today=isoDate(new Date());
  const [siteId,setSiteId]=useState(''),[period,setPeriod]=useState('7'),[prediction,setPrediction]=useState('wasp'),[start,setStart]=useState(today),[end,setEnd]=useState(today),[rows,setRows]=useState([]),[reports,setReports]=useState([]),[detail,setDetail]=useState(null),[reportOpen,setReportOpen]=useState(false),[error,setError]=useState('');
- useEffect(()=>{if(!siteId&&sites[0])setSiteId(sites[0].id)},[sites,siteId]);
+ useEffect(()=>{const requested=searchParams.get('site');if(requested)setSiteId(`site-${requested}`);else if(!siteId&&sites[0])setSiteId(sites[0].id)},[sites,siteId,searchParams]);
+ useEffect(()=>{const id=searchParams.get('detectionId');if(id)openDetail(id)},[searchParams]);
  const range=useMemo(()=>{if(period==='custom')return{start,end};const days=Number(period);const first=new Date();first.setDate(first.getDate()-days+1);return{start:isoDate(first),end:today}},[period,start,end,today]);
  useEffect(()=>{if(!siteId)return;let active=true;const filters={site_id:String(siteId).replace('site-',''),start_at:startOf(range.start),end_at:endOf(range.end),prediction};Promise.all([fetchAnalysisLogs(5000,filters),fetchReports()]).then(([events,history])=>{if(active){setRows(events);setReports(history);setError('')}}).catch(reason=>active&&setError(reason?.message||'감지 이력을 불러오지 못했습니다.'));return()=>{active=false}},[siteId,prediction,range.start,range.end]);
  const siteName=sites.find(site=>site.id===siteId)?.name||rows[0]?.site_name||'사업장';

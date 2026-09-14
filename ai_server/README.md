@@ -115,7 +115,7 @@ Web 분석 화면은 열린 동안에만 선택 사업장의 최신 신호 그�
 |---|---:|---|
 | `BUZZ_AI_MODEL_NAME` | `CNN` | 서버가 로드할 모델 종류 |
 | `BUZZ_AI_MODEL_THRESHOLD` | `0.7` | `P(wasp)`가 말벌 판정으로 인정되는 기준 |
-| `BUZZ_DANGER_CONSECUTIVE_DETECTIONS` | `3` | 위험 상태로 전환하기 위한 연속 말벌 판정 횟수 |
+| `BUZZ_DANGER_CONSECUTIVE_DETECTIONS` | `1` | 위험 상태로 전환하기 위한 연속 말벌 판정 횟수 |
 | `BUZZ_NORMAL_CONSECUTIVE_NON_DETECTIONS` | `3` | 위험 상태를 자동 해제하기 위한 연속 미검출 횟수 |
 | `BUZZ_MANUAL_DANGER_CLEAR_ENABLED` | `true` | 사용자의 수동 위험 해제 허용 여부 |
 | `BUZZ_SIMULATOR_AUDIO_ROOT` | `data/audio_simulator` | 사업장별 시연 음원 루트 폴더 |

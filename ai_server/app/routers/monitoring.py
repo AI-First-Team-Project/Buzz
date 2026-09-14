@@ -3,10 +3,10 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException, Query
 
-from ..config import WORKER_STALE_AFTER_SECONDS
+from ..config import DANGER_CONSECUTIVE_DETECTIONS, NORMAL_CONSECUTIVE_NON_DETECTIONS, WORKER_STALE_AFTER_SECONDS
 from ..database import (
     create_site_record, db_enabled, get_detection_event_detail, list_detection_events, list_report_records, list_site_records,
-    list_status_history, list_status_history_since, safe_update_gate_status,
+    list_status_history, list_status_history_since, safe_update_gate_status, update_manual_gate,
     save_report_record,
 )
 from ..schemas import DoorCommand, HistoryItem, ReportCreate, SiteCreate, SiteStatusResponse
@@ -17,6 +17,8 @@ router = APIRouter(prefix="/api", tags=["monitoring"])
 
 def _with_worker_status(site: dict) -> dict:
     result = dict(site)
+    result["danger_consecutive_threshold"] = DANGER_CONSECUTIVE_DETECTIONS
+    result["normal_consecutive_threshold"] = NORMAL_CONSECUTIVE_NON_DETECTIONS
     analyzed_at = result["last_analysis_time"]
     if analyzed_at is None:
         result["worker_status"] = "WAITING"
@@ -130,13 +132,19 @@ def create_site(payload: SiteCreate):
 
 @router.post("/door/{site_id}", response_model=SiteStatusResponse)
 def door(site_id: int, command: DoorCommand):
+    if get_site(site_id) is None:
+        raise HTTPException(status_code=404, detail="사업장을 찾을 수 없습니다.")
     try:
+        if db_enabled():
+            update_manual_gate(site_id, command.action)
         result = _with_worker_status(set_door(site_id, command.action))
-        db_status = "open" if command.action == "open" else "closed"
-        safe_update_gate_status(site_id, db_status)
         return result
     except KeyError:
         raise HTTPException(status_code=404, detail="사업장을 찾을 수 없습니다.")
+
+
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="문 제어 상태를 저장하지 못했습니다.") from exc
 
 
 @router.get("/analysis-logs")
