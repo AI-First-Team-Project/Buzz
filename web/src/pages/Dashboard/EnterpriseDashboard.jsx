@@ -4,6 +4,7 @@ import { useMonitoring } from '../../data/MonitoringContext';
 import { fetchLatestAnalysis, fetchSimulatorStatus, startSimulator, stopSimulator } from '../../api/buzzApi';
 import { SignalHeatmap, SignalLineChart } from '../AIAnalysis/LiveAnalysisCharts';
 import './EnterpriseDashboard.css';
+import './EnterpriseDashboardOverrides.css';
 import { formatOperationalTime } from '../../utils/formatDateTime';
 
 const DASHBOARD_MEL_PALETTE = [
@@ -39,18 +40,6 @@ function StatCard({ icon, label, value, sub, tone = 'default' }) {
 function StatusPill({ site }) {
   const danger = site.status === 'danger';
   return <span className={`ed-pill ${danger ? 'danger' : 'normal'}`}><i/>{danger ? '위험' : '정상'}</span>;
-}
-
-function SiteOverview({ site, selected, onClick }) {
-  return <button className={`ed-overview-card ${selected ? 'active' : ''} ${site.status === 'danger' ? 'danger' : ''}`} onClick={onClick}>
-    <div className="ed-overview-thumb"><img src={`${import.meta.env.BASE_URL}images/honeybee.jpg`} alt="꿀벌과 벌집" /></div>
-    <div className="ed-overview-body">
-      <div className="ed-overview-title"><strong>{site.name}</strong><StatusPill site={site}/></div>
-      <span>최근 갱신 <b>{formatUpdate(site.lastAnalyzedAt).time}</b></span>
-      <span>출입문 <b>{site.door === 'closed' ? '닫힘' : '열림'}</b></span>
-    </div>
-    <span className="ed-chevron">›</span>
-  </button>;
 }
 
 function MiniHistory({ events, site }) {
@@ -111,8 +100,6 @@ export function EnterpriseDashboard() {
   const latestWasp = site?.aiLabel === 'wasp';
   const toggleSimulator = async () => setSim(await (sim.enabled ? stopSimulator() : startSimulator()));
   const videoPath = site ? `${import.meta.env.BASE_URL}videos/site-${siteNum(site.id)}.mp4` : '';
-  const statusText = danger ? '위험 상태를 확인해 주세요.' : '현재 모든 사업장이 안전합니다.';
-
   const recentUpdated = useMemo(() => formatUpdate(site?.lastAnalyzedAt), [site?.lastAnalyzedAt]);
 
   if (!site) return <div className="ed-page"><p>사업장 정보를 불러오는 중입니다.</p></div>;
@@ -124,12 +111,6 @@ export function EnterpriseDashboard() {
       <StatCard icon="warning" label="위험" value={dangerCount} sub="개소" tone="danger" />
       <StatCard icon="clock" label="최근 갱신" value={recentUpdated.time} sub={recentUpdated.date} tone="muted" />
     </section>
-
-    {danger && <section className="ed-safe-banner danger">
-      <span className="ed-safe-icon">{danger ? '!' : '✓'}</span>
-      <div><h2>{statusText}</h2><p>{danger ? `${site.name}에서 말벌 신호가 감지되었습니다.` : 'AI가 양봉장을 실시간으로 모니터링하고 있으며 현재 이상 징후가 감지되지 않았습니다.'}</p></div>
-      <div className="ed-banner-art">🐝 <span>건강한 꿀벌이 만드는 더 나은 내일</span></div>
-    </section>}
 
     <section className="ed-dashboard-grid">
       <div className="ed-main-column">
@@ -193,9 +174,5 @@ export function EnterpriseDashboard() {
       </aside>
     </section>
 
-    <section className="ed-all-sites">
-      <div className="ed-section-head"><div><h2>전체 사업장 현황</h2><p>각 사업장의 실시간 상태를 한눈에 확인하세요.</p></div><span>총 {sites.length}개 사업장</span></div>
-      <div className="ed-overview-grid">{sites.map((item) => <SiteOverview key={item.id} site={item} selected={item.id === site.id} onClick={() => setParams({ site: String(siteNum(item.id)) })}/>)}</div>
-    </section>
   </div>;
 }

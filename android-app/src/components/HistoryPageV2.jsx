@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import BottomNav from "./BottomNavV2.jsx";
 import "./WebStylePages.css";
+import './ResponsiveOverrides.css';
 import { fetchHistory } from "../api/buzzApi";
 
 const FILTERS = [["all", "전체"], ["danger", "위험"], ["gate", "문 제어"]];
