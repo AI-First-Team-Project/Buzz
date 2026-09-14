@@ -62,7 +62,7 @@ function MiniHistory({ events, site }) {
 export function EnterpriseDashboard() {
   const { sites, detectionEvents, setDoor } = useMonitoring();
   const [params, setParams] = useSearchParams();
-  const requested = Number(params.get('site')) || siteNum(sites[0]?.id || 'site-1');
+  const requested = siteNum(params.get('site') || sites[0]?.id || 'site-1');
   const site = sites.find((item) => siteNum(item.id) === requested) || sites[0];
   const [analysis, setAnalysis] = useState(null);
   const [sim, setSim] = useState({ enabled: true, sites: {} });
