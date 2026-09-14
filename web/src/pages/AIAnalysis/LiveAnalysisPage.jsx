@@ -6,13 +6,15 @@ import './LiveAnalysisPage.css';
 import './LiveAlert.css';
 import './LiveGraphLayout.css';
 import './LiveDashboard.css';
+import { Pagination } from '../../components/common/Pagination';
+import './RecentAnalysisOverrides.css';
 
 const percent=value=>`${(Math.max(0,Math.min(1,Number(value)||0))*100).toFixed(1)}%`;
 
 export function LiveAnalysisPage({onViewHistory}){
- const [sites,setSites]=useState([]),[siteId,setSiteId]=useState(null),[data,setData]=useState(null),[recent,setRecent]=useState([]),[error,setError]=useState('');
+ const [sites,setSites]=useState([]),[siteId,setSiteId]=useState(null),[data,setData]=useState(null),[recent,setRecent]=useState([]),[error,setError]=useState(''),[page,setPage]=useState(1);
  useEffect(()=>{fetchSiteStatuses().then(value=>{setSites(value);setSiteId(current=>current??value[0]?.site_id??null)}).catch(reason=>setError(reason?.message||'사업장 정보를 불러오지 못했습니다.'))},[]);
- useEffect(()=>{if(!siteId)return;let dead=false;const load=()=>Promise.all([fetchLatestAnalysis(siteId),fetchAnalysisLogs(8,{site_id:siteId})]).then(([latest,logs])=>{if(!dead){setData(latest);setRecent(logs);setError('')}}).catch(reason=>!dead&&setError(reason?.message||'분석 데이터를 불러오지 못했습니다.'));load();const timer=setInterval(load,20000);return()=>{dead=true;clearInterval(timer)}},[siteId]);
+ useEffect(()=>{if(!siteId)return;let dead=false;setPage(1);const load=()=>Promise.all([fetchLatestAnalysis(siteId),fetchAnalysisLogs(100,{site_id:siteId})]).then(([latest,logs])=>{if(!dead){setData(latest);setRecent(logs.filter(item=>item.analysis_type!=='test'));setError('')}}).catch(reason=>!dead&&setError(reason?.message||'분석 데이터를 불러오지 못했습니다.'));load();const timer=setInterval(load,20000);return()=>{dead=true;clearInterval(timer)}},[siteId]);
  const site=useMemo(()=>sites.find(item=>item.site_id===siteId),[sites,siteId]);
  const prediction=data?.prediction;
  const label=prediction?.label??site?.detected_class;
@@ -20,6 +22,7 @@ export function LiveAnalysisPage({onViewHistory}){
  const waspProbability=prediction?.probabilities?.wasp??site?.probabilities?.wasp??0;
  const normalProbability=prediction?.probabilities?.non_wasp??site?.probabilities?.non_wasp??0;
  const analyzed=formatOperationalTime(data?.meta?.timestamp??site?.last_analysis_time);
+ const pageCount=Math.max(1,Math.ceil(recent.length/10));const currentPage=Math.min(page,pageCount);const pageRows=recent.slice((currentPage-1)*10,currentPage*10);
  return <div className="la-page">
   <section className="la-command-bar"><div><span className="la-command-label">모니터링 대상</span><label className="la-site-select"><span className="la-site-dot"/ ><select aria-label="사업장 선택" value={siteId??''} onChange={event=>setSiteId(Number(event.target.value))} disabled={!sites.length}><option value="" disabled>사업장 없음</option>{sites.map(item=><option key={item.site_id} value={item.site_id}>{item.site_name}</option>)}</select></label></div><div className="la-connection"><span className="la-live-dot"/>실시간 연결 중</div><div className="la-refresh"><span>↻</span><div><small>자동 갱신</small><b>20초</b></div></div></section>
   <section className="la-overview">
@@ -27,8 +30,8 @@ export function LiveAnalysisPage({onViewHistory}){
    <div className="la-kpis"><ProbabilityCard label="말벌 감지 확률" value={waspProbability} danger/><ProbabilityCard label="정상 확률" value={normalProbability}/><article className="la-meta-card"><span>최근 분석 시간</span><strong>{analyzed.time||'-'}</strong><small>{analyzed.date||'분석 대기 중'}</small></article><article className="la-meta-card"><span>사용 모델</span><strong>{data?.meta?.modelName??recent[0]?.model_name??'-'}</strong><small>{site?.site_name??'등록된 사업장 없음'}</small></article></div>
   </section>
   {!data?<section className="la-empty">{error||'수신된 실시간 분석 데이터가 없습니다.'}</section>:<section className="la-grid"><AnalysisContents data={data}/></section>}
-  <section className="la-recent"><div className="la-recent-head"><div><h2>최근 분석 결과</h2><p>DB에 저장된 최신 분석부터 표시합니다.</p></div><button type="button" onClick={onViewHistory}>전체 이력 보기</button></div>
-   <div className="la-recent-list">{recent.map(item=>{const stamp=formatOperationalTime(item.detected_at);const wasp=item.prediction==='wasp';return <div key={item.id} className={wasp?'danger':''}><time>{stamp.time}<small>{stamp.date}</small></time><strong>{wasp?'⚠ 말벌':'정상'}</strong><span>정상 {percent(item.non_wasp_probability)} / 말벌 {percent(item.wasp_probability)}</span></div>})}{!recent.length&&<p className="la-recent-empty">감지 기록이 없습니다.</p>}</div>
+  <section className="la-recent"><div className="la-recent-head"><div><h2>최근 분석 결과</h2><p>AI가 최근 수집된 음원을 판정한 결과입니다.</p></div><button type="button" onClick={onViewHistory}>감지 이력 보기</button></div>
+   <div className="la-recent-list">{pageRows.map(item=>{const stamp=formatOperationalTime(item.detected_at);const wasp=item.prediction==='wasp';return <div key={item.id} className={wasp?'danger':''}><time>{stamp.time}<small>{stamp.date}</small></time><span>{item.site_name||site?.site_name}</span><strong>{wasp?'⚠ 말벌':'비말벌'}</strong><b>{percent(item.confidence)}</b></div>})}{!recent.length&&<p className="la-recent-empty">최근 실시간 분석 결과가 없습니다.</p>}</div><Pagination page={currentPage} totalPages={pageCount} onChange={setPage}/>
   </section>
  </div>;
 }

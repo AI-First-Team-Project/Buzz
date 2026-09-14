@@ -28,7 +28,8 @@ export async function fetchSimulatorStatus(){return request('/api/simulator/stat
 export async function startSimulator(){return request('/api/simulator/start',{method:'POST'})}
 export async function stopSimulator(){return request('/api/simulator/stop',{method:'POST'})}
 export async function analyzeFullTestAudio(file,siteId=1){const form=new FormData();form.append('file',file);form.append('site_id',String(siteId));return request('/api/test/analyze-full',{method:'POST',body:form})}
-export async function fetchTestHistory(){return request('/api/test/history')}
+export async function fetchTestHistory(limit=10,offset=0){return request(`/api/test/history?limit=${limit}&offset=${offset}`)}
+export async function fetchTestHistoryDetail(testId){return request(`/api/test/history/${encodeURIComponent(testId)}`)}
 export async function fetchHistorySummary(siteId, days=7){const query=new URLSearchParams({days:String(days)});if(siteId&&siteId!=='all')query.set('site_id',String(siteId).replace('site-',''));return request(`/api/history/summary?${query}`)}
 export async function fetchSites(){return request('/api/sites')}
 export async function createSite(payload){return request('/api/sites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})}

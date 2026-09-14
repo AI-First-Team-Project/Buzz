@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import BottomNav from "./BottomNavV2.jsx";
 import "./WebStylePages.css";
+import './ResponsiveOverrides.css';
+import './HistorySemanticOverrides.css';
 import { fetchHistory } from "../api/buzzApi";
 
 const FILTERS = [["all", "전체"], ["danger", "위험"], ["gate", "문 제어"]];
@@ -99,7 +101,7 @@ export default function HistoryPage({ setPage }) {
   }, []);
   const HISTORY_OVERVIEW = { total: history.length, danger: history.filter(v => v.type === 'danger').length, door: history.filter(v => v.type === 'gate').length };
 
-  const filtered = history.filter((item) => filter === "all" || item.type === filter);
+  const filtered = history.filter((item) => item.type === "danger");
   const pageCount = Math.max(1, Math.ceil(filtered.length / 10));
   const currentPage = Math.min(historyPage, pageCount);
   const pageItems = filtered.slice((currentPage - 1) * 10, currentPage * 10);
@@ -110,7 +112,7 @@ export default function HistoryPage({ setPage }) {
         <div className="buzz-page-heading buzz-history-heading">
           <div>
             <h1>감지 이력</h1>
-            <p className="buzz-page-desc">위험 감지와 출입문 동작을 확인하세요.</p>
+            <p className="buzz-page-desc">말벌 감지 및 위험 발생 기록입니다.</p>
           </div>
         </div>
 
