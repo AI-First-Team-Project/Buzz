@@ -1,3 +1,4 @@
 .ed-safe-banner,.ed-all-sites{display:none}
 .ed-dashboard-grid{grid-template-columns:minmax(0,7fr) minmax(300px,3fr)}
+.ed-ai-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 0}.ed-ai-meta>div{padding:8px 10px;border-radius:9px;background:#f7f9fa}.ed-ai-meta dt{color:#8793a0;font-size:9px}.ed-ai-meta dd{margin:3px 0 0;color:#26384c;font-size:11px;font-weight:800}
 @media(max-width:1200px){.ed-dashboard-grid{grid-template-columns:1fr}}

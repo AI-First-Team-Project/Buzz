@@ -8,6 +8,7 @@ import { formatOperationalTime } from '../../utils/formatDateTime';
 import { MEL_PALETTE, SignalHeatmap, SignalLineChart } from '../AIAnalysis/LiveAnalysisCharts';
 import './HistoryPage.css';
 import { Pagination } from '../../components/common/Pagination';
+import './DetectionHistoryOverrides.css';
 
 const isoDate=date=>{const offset=date.getTimezoneOffset();return new Date(date.getTime()-offset*60000).toISOString().slice(0,10)};
 const pct=value=>`${((Number(value)||0)*100).toFixed(1)}%`;

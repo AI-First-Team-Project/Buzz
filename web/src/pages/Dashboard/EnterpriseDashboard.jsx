@@ -158,6 +158,7 @@ export function EnterpriseDashboard() {
         <section className={`ed-side-card ed-ai-card ${latestWasp ? 'danger' : ''}`}>
           <div className="ed-card-head"><h3>최근 AI 판정 결과</h3></div>
           <div className="ed-ai-result"><span>{latestWasp ? '!' : '✓'}</span><div><strong>{classify(site)} <b>{primaryPercent}%</b></strong><p>마지막으로 수신한 2초 음원의 이진분류 결과입니다.</p></div></div>
+          <dl className="ed-ai-meta"><div><dt>사업장</dt><dd>{site.name}</dd></div><div><dt>분석 시간</dt><dd>{recentUpdated.time}</dd></div></dl>
           <div className="ed-confidence"><i style={{ width: `${primaryPercent}%` }}/></div>
           <button className="ed-simulator-toggle" onClick={toggleSimulator}>{sim.enabled ? '시뮬레이션 일시정지' : '시뮬레이션 시작'}</button>
         </section>
