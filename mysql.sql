@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS sites (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     location VARCHAR(255) NULL,
+    description VARCHAR(500) NULL,
     wasp_close_threshold DECIMAL(5,4) NOT NULL DEFAULT 0.7000,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -71,9 +72,9 @@ CREATE TABLE IF NOT EXISTS gate_events (
 );
 
 INSERT INTO sites (id, name, location, wasp_close_threshold) VALUES
-  (1, '사업장 1', '천안 양봉장 1', 0.7000),
-  (2, '사업장 2', '천안 양봉장 2', 0.7000),
-  (3, '사업장 3', '천안 양봉장 3', 0.7000)
+  (1, '사업장 1', '경기도 양평군 양서면', 0.7000),
+  (2, '사업장 2', '충청남도 공주시 정안면', 0.7000),
+  (3, '사업장 3', '전북특별자치도 완주군 구이면', 0.7000)
 ON DUPLICATE KEY UPDATE
   name = VALUES(name),
   location = VALUES(location),
@@ -108,4 +109,17 @@ CREATE TABLE IF NOT EXISTS status_history (
 CREATE TABLE IF NOT EXISTS analysis_record_schedule (
     site_id INT PRIMARY KEY,
     last_periodic_at DATETIME NULL
+);
+
+CREATE TABLE IF NOT EXISTS report_history (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NULL,
+    period_start DATETIME NOT NULL,
+    period_end DATETIME NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    file_name VARCHAR(255) NOT NULL,
+    report_type ENUM('pdf','csv') NOT NULL,
+    filters_json JSON NULL,
+    CONSTRAINT fk_report_site FOREIGN KEY (site_id) REFERENCES sites(id),
+    INDEX idx_report_created (created_at)
 );

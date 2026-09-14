@@ -71,6 +71,20 @@ def list_sites() -> list[dict]:
         return deepcopy([_sites[site_id] for site_id in sorted(_sites)])
 
 
+def register_site(site_id: int, site_name: str) -> dict:
+    with _lock:
+        if site_id not in _sites:
+            _sites[site_id] = {
+                "site_id": site_id, "site_name": site_name, "status": "NORMAL",
+                "detected_class": None, "confidence": 0.0,
+                "probabilities": Probabilities(non_wasp=0.0, wasp=0.0),
+                "door_status": "OPEN", "last_analysis_time": None,
+                "latest_analysis_id": None, "consecutive_wasp": 0,
+                "consecutive_non_wasp": 0,
+            }
+        return deepcopy(_sites[site_id])
+
+
 def list_history(limit: int = 100) -> list[dict]:
     with _lock:
         return deepcopy(_history[:limit])

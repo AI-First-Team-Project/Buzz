@@ -1,14 +1,63 @@
-import { useEffect,useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import BottomNav from './BottomNav';
-import { fetchLatestAnalysis, fetchSimulatorStatus, fetchSiteStatuses, startSimulator, stopSimulator } from '../api/buzzApi';
-import { WaveformChart, SpectrumChart, MelSpectrogram, MfccHeatmap } from './AudioAnalysisCharts';
+import { commandDoor, fetchSiteStatuses } from '../api/buzzApi';
 import './EnterpriseMobileHome.css';
-const map=s=>({id:s.site_id,name:s.site_name,danger:s.status==='DANGER',label:s.detected_class,confidence:Math.round((s.confidence||0)*100),door:s.door_status});
-export default function EnterpriseMobileHome({setPage}){
- const [sites,setSites]=useState([]),[selected,setSelected]=useState('all'),[sim,setSim]=useState({enabled:true,sites:{}}),[detail,setDetail]=useState(null);
- useEffect(()=>{let dead=false;const load=async()=>{try{const [a,b]=await Promise.all([fetchSiteStatuses(),fetchSimulatorStatus()]);if(!dead){setSites(a.map(map));setSim(b)}}catch{}};load();const t=setInterval(load,2000);return()=>{dead=true;clearInterval(t)}},[]);
- useEffect(()=>{if(selected==='all'){setDetail(null);return} let dead=false;const load=()=>fetchLatestAnalysis(Number(selected)).then(v=>!dead&&setDetail(v)).catch(()=>{});load();const t=setInterval(load,2000);return()=>{dead=true;clearInterval(t)}},[selected]);
- const toggle=async()=>setSim(await(sim.enabled?stopSimulator():startSimulator())); const site=sites.find(s=>s.id===Number(selected));
- return <div className="em-page"><main><header><div><small>BUZZ AI SAFETY</small><h1>실시간 모니터링</h1></div><button onClick={toggle}>{sim.enabled?'■ STOP':'▶ START'}</button></header><nav><button className={selected==='all'?'active':''} onClick={()=>setSelected('all')}>전체</button>{sites.map(s=><button className={selected===String(s.id)?'active':''} key={s.id} onClick={()=>setSelected(String(s.id))}>사업장{s.id}</button>)}</nav>
- {selected==='all'?<section className="em-sites">{sites.map(s=>{const ss=sim.sites?.[s.id];return <button key={s.id} className={s.danger?'danger':''} onClick={()=>setSelected(String(s.id))}><div><h2>{s.name}</h2><span className={s.danger?'danger':'normal'}>{s.danger?'위험':'정상'}</span></div><strong>{ss?.state==='ERROR'?'분석 오류':s.label==='wasp'?'말벌':'말벌 아님'} · {s.confidence}%</strong><small>{ss?.current_file||'음원 대기'} {Number.isInteger(ss?.chunk_index)?`#${ss.chunk_index+1}`:''}</small></button>})}</section>:site&&<section className="em-detail"><div className="em-result"><div><small>{site.name}</small><h2>{site.label==='wasp'?'말벌':'말벌 아님'}</h2></div><b>{site.confidence}%</b></div>{sim.sites?.[site.id]?.state==='ERROR'&&<p className="em-error">API 오류 · normal로 대체하지 않음</p>}{detail?<div className="em-charts"><article><h3>Waveplot</h3><WaveformChart data={detail.waveform}/></article><article><h3>FFT Spectrum</h3><SpectrumChart data={detail.fft}/></article><article><h3>Mel-Spectrogram</h3><MelSpectrogram data={detail.spectrogram}/></article>{detail.mfcc&&<article><h3>MFCC</h3><MfccHeatmap data={detail.mfcc}/></article>}</div>:<p className="em-wait">실제 2초 chunk를 기다리는 중</p>}</section>}</main><BottomNav currentPage="home" setPage={setPage}/></div>;
+import './EnterpriseMobileB2B.css';
+import './MobileOverflow.css';
+
+const mapSite = (site) => ({
+  id: site.site_id,
+  name: site.site_name,
+  danger: site.status === 'DANGER',
+  label: site.detected_class,
+  confidence: Math.round((site.confidence || 0) * 100),
+  door: site.door_status,
+  updatedAt: site.last_analysis_time,
+});
+
+function formatTime(value) {
+  const date = new Date(value);
+  return value && !Number.isNaN(date.getTime())
+    ? date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+    : '대기 중';
+}
+
+export default function EnterpriseMobileHome({ setPage }) {
+  const [sites, setSites] = useState([]);
+  const [selectedId, setSelectedId] = useState(1);
+  const [error, setError] = useState('');
+  const site = useMemo(() => sites.find((item) => item.id === selectedId) || sites[0], [sites, selectedId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => fetchSiteStatuses().then((value) => {
+      if (!cancelled) { setSites(value.map(mapSite)); setError(''); }
+    }).catch((reason) => { if (!cancelled) setError(reason?.message || '서버 연결을 확인해 주세요.'); });
+    load();
+    const timer = setInterval(load, 2000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, []);
+
+  const toggleDoor = async () => {
+    if (!site) return;
+    const action = site.door === 'CLOSED' ? 'open' : 'close';
+    try {
+      await commandDoor(site.id, action);
+      setSites((items) => items.map((item) => item.id === site.id ? { ...item, door: action === 'open' ? 'OPEN' : 'CLOSED' } : item));
+    } catch (reason) { setError(reason?.message || '개폐기를 제어하지 못했습니다.'); }
+  };
+
+  if (!site) return <div className="em-page"><main className="em-loading">사업장 정보를 불러오는 중입니다.</main><BottomNav currentPage="home" setPage={setPage}/></div>;
+  const wasp = site.label === 'wasp' ? site.confidence : Math.max(0, 100 - site.confidence);
+
+  return <div className="em-page"><main>
+    <header className="em-header"><div><small>BUZZ</small><h1>{site.name}</h1></div><span className={site.danger ? 'danger' : 'normal'}>{site.danger ? '위험' : '정상'}</span></header>
+    <nav className="em-site-tabs" aria-label="사업장 선택">{sites.map((item) => <button key={item.id} className={item.id === site.id ? 'active' : ''} onClick={() => setSelectedId(item.id)}>사업장 {item.id}</button>)}</nav>
+    {site.danger && <section className="em-alert"><strong>말벌 위험이 감지되었습니다.</strong><span>개폐기 상태와 현장을 확인해 주세요.</span></section>}
+    <section className="em-video"><video key={site.id} src={`${import.meta.env.BASE_URL}videos/site-${site.id}.mp4`} poster={`${import.meta.env.BASE_URL}images/hero.jpg`} autoPlay muted loop playsInline/><span>LIVE</span></section>
+    <section className={`em-card em-ai ${site.danger ? 'danger' : ''}`}><div><small>현재 AI 판정</small><h2>{site.label === 'wasp' ? '말벌' : '정상'}</h2></div><strong>{site.confidence}%</strong><div className="em-probs"><span>말벌 아님 <b>{100 - wasp}%</b></span><span>말벌 <b>{wasp}%</b></span></div></section>
+    <section className="em-card em-door"><div><small>개폐기 상태</small><h2>{site.door === 'CLOSED' ? '닫힘' : '열림'}</h2></div><button onClick={toggleDoor}>{site.door === 'CLOSED' ? '문 열기' : '문 닫기'}</button></section>
+    {error && <p className="em-error">{error}</p>}
+    <section className="em-sites"><h2>전체 사업장</h2><div>{sites.map((item) => <button key={item.id} onClick={() => setSelectedId(item.id)}><span>{item.name}</span><b className={item.danger ? 'danger' : 'normal'}>{item.danger ? '위험' : '정상'}</b><small>{item.door === 'CLOSED' ? '닫힘' : '열림'} · {formatTime(item.updatedAt)}</small></button>)}</div></section>
+  </main><BottomNav currentPage="home" setPage={setPage}/></div>;
 }

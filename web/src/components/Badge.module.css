@@ -2,7 +2,8 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
+  min-height: 24px;
+  padding: 3px 9px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;

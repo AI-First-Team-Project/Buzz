@@ -1,0 +1,5 @@
+.modalBackdrop{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:rgba(12,28,47,.45)}
+.modal{width:min(480px,100%);border-radius:16px;background:#fff;padding:22px;box-shadow:0 24px 70px rgba(8,24,42,.25)}
+.modal header{display:flex;justify-content:space-between;margin-bottom:18px}.modal h2{margin:0 0 5px;color:#17334f}.modal header p{margin:0;color:#82909e;font-size:12px}.modal header button{border:0;background:transparent;color:#73808d;font-size:24px}
+.modal label{display:grid;gap:6px;margin-top:13px;color:#566577;font-size:12px;font-weight:800}.modal input,.modal textarea{border:1px solid #dfe4e9;border-radius:9px;padding:10px 12px;font:inherit;color:#26384c}.modal textarea{min-height:90px;resize:vertical}
+.modal footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}.modal footer button{border:1px solid #dfe4e9;border-radius:9px;background:#fff;padding:0 18px;font-weight:800}.modal footer button[type=submit]{border-color:#f5b82e;background:#f5b82e;color:#213248}.formError{color:#e05252;font-size:12px}

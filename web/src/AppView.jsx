@@ -1,14 +1,14 @@
-import { AnalysisLogs } from './pages/History/AnalysisLogs.jsx';
 import { MonitoringProvider } from './data/MonitoringContext';
 import { Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { EnterpriseDashboard as Dashboard } from './pages/Dashboard/EnterpriseDashboard.jsx';
-import { Worksites } from './pages/Worksites/Worksites';
-import { LiveAnalysisPage as AIAnalysis } from './pages/AIAnalysis/LiveAnalysisPage.jsx';
-import { History } from './pages/History/History';
+import { Worksites } from './pages/Worksites/Worksites.jsx';
 import { Settings } from './pages/Settings/Settings';
 import { FileTestPage as SoundTest } from './pages/SoundTest/FileTestPage.jsx';
 import { SoundTestDetail } from './pages/SoundTest/SoundTestDetail.jsx';
+import { MonitoringPage } from './pages/Monitoring/MonitoringPage.jsx';
+import { Navigate } from 'react-router-dom';
+import './styles/b2b.css';
 
 export function App() {
   return (
@@ -17,9 +17,9 @@ export function App() {
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="sites" element={<Worksites />} />
-          <Route path="analysis" element={<AIAnalysis />} />
-          <Route path="history" element={<History />} />
-          <Route path="analysis-logs" element={<AnalysisLogs />} />
+          <Route path="monitoring" element={<MonitoringPage />} />
+          <Route path="analysis" element={<Navigate to="/monitoring" replace />} />
+          <Route path="history" element={<Navigate to="/monitoring" replace />} />
           <Route path="settings" element={<Settings />} />
           <Route path="sound-test" element={<SoundTest />} />
           <Route path="sound-test/detail" element={<SoundTestDetail />} />

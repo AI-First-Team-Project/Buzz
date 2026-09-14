@@ -82,7 +82,7 @@ export default function SitePage({ setPage }) {
                     <b>{door}</b>
                   </div>
                   <div>
-                    <span>최근 분석</span>
+                    <span>마지막 갱신</span>
                     <b>방금 전</b>
                   </div>
                 </div>

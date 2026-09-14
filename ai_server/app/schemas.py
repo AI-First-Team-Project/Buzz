@@ -139,6 +139,21 @@ class DoorCommand(BaseModel):
     action: Literal["open", "close"]
 
 
+class SiteCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    location: str = Field(min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=500)
+
+
+class ReportCreate(BaseModel):
+    site_id: int | None = None
+    period_start: datetime
+    period_end: datetime
+    file_name: str = Field(min_length=1, max_length=255)
+    report_type: Literal["pdf", "csv"]
+    filters: dict = Field(default_factory=dict)
+
+
 class AnalyzePathRequest(BaseModel):
     file_path: str
     site_id: int = 3

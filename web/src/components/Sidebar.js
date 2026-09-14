@@ -1,14 +1,12 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 // 공통 탐색 - 사이드바 메뉴
 import { NavLink } from 'react-router-dom';
-import { AnalysisIcon, DashboardIcon, HistoryIcon, SettingsIcon, SiteIcon, SoundTestIcon, } from './Icons';
+import { AnalysisIcon, DashboardIcon, SettingsIcon, SiteIcon, SoundTestIcon, } from './Icons';
 import styles from './Sidebar.module.css';
 const NAV_ITEMS = [
     { to: '/', label: '대시보드', icon: DashboardIcon, end: true },
     { to: '/sites', label: '사업장', icon: SiteIcon, end: false },
-    { to: '/analysis', label: '분석', icon: AnalysisIcon, end: false },
-    { to: '/history', label: '이력', icon: HistoryIcon, end: false },
-    { to: '/analysis-logs', label: '분석 로그', icon: AnalysisIcon, end: false },
+    { to: '/monitoring', label: '모니터링', icon: AnalysisIcon, end: false },
     { to: '/settings', label: '설정', icon: SettingsIcon, end: false },
     { to: '/sound-test', label: '테스트', icon: SoundTestIcon, end: false },
 ];

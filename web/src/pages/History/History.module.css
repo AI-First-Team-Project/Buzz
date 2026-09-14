@@ -266,12 +266,32 @@
 
 .dailyReportList > div {
   display: grid;
-  grid-template-columns: 1.3fr repeat(3, .8fr) 1.7fr;
+  grid-template-columns: 1.35fr repeat(3, .75fr) 1fr;
   align-items: center;
-  gap: 8px;
-  padding: 11px 13px;
+  gap: 12px;
+  padding: 13px 15px;
   color: var(--text-secondary);
   font-size: 12px;
+}
+
+.dailyReportList > div:nth-child(even) {
+  background: #fafbfc;
+}
+
+.dailyDate,
+.dailyMetric {
+  display: grid;
+  gap: 3px;
+}
+
+.dailyDate span,
+.dailyMetric span {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.dailyMetric b {
+  font-size: 13px;
 }
 
 .dailyReportList > div + div {
@@ -291,6 +311,21 @@
 .dailyReportList small {
   color: var(--text-muted);
   font-size: 11.5px;
+}
+
+.dailyStatus {
+  justify-self: end;
+  border-radius: 999px;
+  background: var(--success-tint);
+  padding: 6px 10px;
+  color: var(--success) !important;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dailyStatusDanger {
+  background: var(--danger-tint);
+  color: var(--danger) !important;
 }
 
 @media print {

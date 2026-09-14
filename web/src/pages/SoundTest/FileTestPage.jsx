@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { analyzeFullTestAudio, fetchTestHistory } from '../../api/buzzApi';
 import { MEL_PALETTE, SignalHeatmap, SignalLineChart } from '../AIAnalysis/LiveAnalysisCharts';
 import './FileTestPage.css';
+import { SystemLogSection } from './SystemLogSection.jsx';
 const MFCC_PALETTE=[[30,58,138],[59,130,246],[248,250,252],[239,68,68],[153,27,27]];
 const fmt=n=>Number(n||0).toFixed(1);
 const rangeText=r=>`${fmt(r.startSec)}~${fmt(r.endSec)}초`;
@@ -16,5 +17,5 @@ export function FileTestPage(){
  {result&&<section className={`ft-summary ${result.finalResult==='wasp'?'danger':''}`}><div><span>최종 결과</span><strong>{result.finalResult==='wasp'?'말벌 감지':'말벌 미감지'}</strong></div><div><span>전체 길이</span><strong>{fmt(result.totalDuration)}초</strong></div><div><span>최대 confidence</span><strong>{(result.maxConfidence*100).toFixed(1)}%</strong></div><div className="ranges"><span>말벌 감지 구간</span><strong>{result.detectedRanges.length?result.detectedRanges.map(rangeText).join(' · '):'없음'}</strong></div></section>}
  <div className="ft-layout"><section className="ft-history"><h2>테스트 이력</h2>{history.length===0?<p className="ft-empty">아직 테스트 이력이 없습니다.</p>:history.map(h=><button key={h.testId} className={run?.testId===h.testId?'active':''} onClick={()=>setSelectedRun(h)}><div><b>{h.fileName}</b><span>{new Date(h.testedAt).toLocaleString('ko-KR')}</span></div><em className={h.finalResult==='wasp'?'danger':''}>{h.finalResult==='wasp'?'말벌 감지':'정상'}</em><small>사업장 {h.siteId} · {fmt(h.totalDuration)}초 · max {(h.maxConfidence*100).toFixed(1)}%</small><small>{h.detectedRanges.length?h.detectedRanges.map(rangeText).join(', '):'감지 구간 없음'}</small></button>)}</section>
  <section className="ft-chunklog"><h2>전체 chunk 로그</h2>{!run?<p className="ft-empty">테스트 이력을 선택하세요.</p>:run.chunks.map(c=><button key={c.chunkIndex} onClick={()=>setChunk(c)} className={c.prediction.label==='wasp'?'danger':''}><span>{rangeText(c)}</span><b>{c.prediction.label==='wasp'?'wasp':'normal'}</b><em>{(c.prediction.confidence*100).toFixed(1)}%</em>{c.padded&&<small>padding</small>}</button>)}</section></div>
- <ChunkDetail chunk={chunk} onClose={()=>setChunk(null)}/></div>;
+ <SystemLogSection/><ChunkDetail chunk={chunk} onClose={()=>setChunk(null)}/></div>;
 }

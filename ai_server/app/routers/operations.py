@@ -9,6 +9,7 @@ from ..config import ALLOWED_EXTENSIONS, MAX_UPLOAD_BYTES, UPLOAD_DIR
 from ..database import safe_save_file_test_result, safe_list_file_test_results
 from ..services.file_test_service import analyze_full_file
 from ..simulator_store import get_state, report, set_enabled
+from ..store import get_site
 
 router = APIRouter(prefix="/api", tags=["operations"])
 _memory_tests: list[dict] = []
@@ -54,8 +55,8 @@ def simulator_report(
 
 @router.post("/test/analyze-full")
 def test_analyze_full(file: UploadFile = File(...), site_id: int = Form(1)):
-    if site_id not in (1, 2, 3):
-        raise HTTPException(400, "site_id는 1~3만 가능합니다.")
+    if get_site(site_id) is None:
+        raise HTTPException(400, "등록된 사업장 site_id가 아닙니다.")
     path = _save(file)
     try:
         result = analyze_full_file(path, file.filename or path.name, site_id)
