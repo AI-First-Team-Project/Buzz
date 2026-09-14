@@ -1,15 +1,17 @@
 import { jsx as _jsx } from "react/jsx-runtime";
 // 모니터링 - 사업장 상태, 위험 알림, 출입문 및 설정 공유
 import { createContext, useContext, useEffect, useState } from 'react';
-import { commandDoor, fetchHistory, fetchSiteStatuses } from '../api/buzzApi';
+import { commandDoor, fetchDetectionSettings, fetchHistory, fetchSiteStatuses, saveDetectionSettings } from '../api/buzzApi';
 const defaultSettings = { waspAlert: true, vibration: true, autoClose: true, autoCloseThreshold: 85 };
 const storageKey = 'buzz-web-settings-v1';
+const mapSettings = value => ({ waspAlert:value.wasp_alert, vibration:value.vibration,
+    autoClose:true, autoCloseThreshold:value.wasp_threshold_percent });
 function loadSettings() {
     try {
         const saved = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
         if (saved && ['waspAlert', 'vibration', 'autoClose'].every((key) => typeof saved[key] === 'boolean') &&
             Number.isFinite(saved.autoCloseThreshold) && saved.autoCloseThreshold >= 60 && saved.autoCloseThreshold <= 99)
-            return saved;
+            return { ...defaultSettings, ...saved };
     }
     catch { /* 저장소를 사용할 수 없으면 기본 설정 사용 */ }
     return defaultSettings;
@@ -23,6 +25,12 @@ function mapSite(site) {
         status: site.status === 'DANGER' ? 'danger' : 'normal',
         aiLabel: site.detected_class === 'wasp' ? 'wasp' : 'non-wasp',
         aiConfidence: Math.round((site.confidence ?? 0) * 100),
+        waspProbability: Math.round((site.probabilities?.wasp ?? 0) * 100),
+        nonWaspProbability: Math.round((site.probabilities?.non_wasp ?? 0) * 100),
+        consecutiveWasp: site.consecutive_wasp ?? 0,
+        consecutiveNonWasp: site.consecutive_non_wasp ?? 0,
+        dangerThreshold: site.danger_consecutive_threshold ?? 3,
+        normalThreshold: site.normal_consecutive_threshold ?? 3,
         door: site.door_status === 'CLOSED' ? 'closed' : 'open',
         lastAnalyzedAt: site.last_analysis_time,
         photoTone: 'green',
@@ -36,6 +44,7 @@ function mapEvent(event) {
         date: Number.isNaN(timestamp.getTime()) ? '' : timestamp.toISOString().slice(0, 10),
         time: Number.isNaN(timestamp.getTime()) ? '' : timestamp.toLocaleTimeString('ko-KR', { hour12: false }),
         siteName: event.site_name,
+        siteId: `site-${event.site_id}`,
         kind: event.type === 'gate' ? 'door' : event.type === 'danger' ? 'danger' : 'detection',
         label: event.title,
         aiClassification: event.result === 'wasp' ? 'wasp' : 'non-wasp',
@@ -49,6 +58,7 @@ export function MonitoringProvider({ children }) {
     const [state, setState] = useState(() => ({ sites: [], detectionEvents: [] }));
     const [settings, setSettings] = useState(loadSettings);
     const [dangerDeadlines, setDangerDeadlines] = useState({});
+    useEffect(() => { fetchDetectionSettings().then(value => setSettings(mapSettings(value))).catch(() => {}); }, []);
     const refreshMonitoring = async () => {
         const [sitesResult, historyResult] = await Promise.allSettled([fetchSiteStatuses(), fetchHistory()]);
         setState((prev) => ({
@@ -150,7 +160,14 @@ export function MonitoringProvider({ children }) {
         });
         return true;
     }
-    return _jsx(Context.Provider, { value: { ...state, settings, saveSettings, setDoor, detect, refreshMonitoring }, children: children });
+    async function saveServerSettings(next) {
+        const saved = await saveDetectionSettings({ wasp_alert:next.waspAlert, vibration:next.vibration,
+            auto_close:true, wasp_threshold_percent:next.autoCloseThreshold });
+        setSettings(mapSettings(saved));
+        await refreshMonitoring();
+        return true;
+    }
+    return _jsx(Context.Provider, { value: { ...state, settings, saveSettings:saveServerSettings, setDoor, detect, refreshMonitoring }, children: children });
 }
 export function useMonitoring() {
     const context = useContext(Context);

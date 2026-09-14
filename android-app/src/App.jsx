@@ -8,6 +8,7 @@ import SettingsPage from "./components/SettingsPageV2.jsx";
 import GatePage from "./components/GatePage";
 import SitePage from "./components/SitePage.jsx";
 import TestPage from "./components/TestPage.jsx";
+import NotificationCenter from "./components/NotificationCenter.jsx";
 
 const VALID_PAGES = ["home", "analysis", "history", "result", "gate", "settings", "site", "test"];
 
@@ -24,26 +25,27 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [currentPage]);
 
+  if (currentPage === "splash") return <SplashScreen onComplete={() => setCurrentPage(getRequestedPage())} />;
+  let page;
   switch (currentPage) {
-    case "splash":
-      return <SplashScreen onComplete={() => setCurrentPage(getRequestedPage())} />;
     case "home":
-      return <HomePage setPage={setCurrentPage} />;
+      page = <HomePage setPage={setCurrentPage} />; break;
     case "analysis":
-      return <AnalysisPage setPage={setCurrentPage} />;
+      page = <AnalysisPage setPage={setCurrentPage} />; break;
     case "history":
-      return <HistoryPage setPage={setCurrentPage} />;
+      page = <HistoryPage setPage={setCurrentPage} />; break;
     case "result":
-      return <ResultPage setPage={setCurrentPage} />;
+      page = <ResultPage setPage={setCurrentPage} />; break;
     case "gate":
-      return <GatePage setPage={setCurrentPage} />;
+      page = <GatePage setPage={setCurrentPage} />; break;
     case "settings":
-      return <SettingsPage setPage={setCurrentPage} />;
+      page = <SettingsPage setPage={setCurrentPage} />; break;
     case "site":
-      return <SitePage setPage={setCurrentPage} />;
+      page = <SitePage setPage={setCurrentPage} />; break;
     case "test":
-      return <TestPage setPage={setCurrentPage} />;
+      page = <TestPage setPage={setCurrentPage} />; break;
     default:
-      return <HomePage setPage={setCurrentPage} />;
+      page = <HomePage setPage={setCurrentPage} />;
   }
+  return <><NotificationCenter setPage={setCurrentPage}/>{page}</>;
 }

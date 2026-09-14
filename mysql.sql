@@ -123,3 +123,32 @@ CREATE TABLE IF NOT EXISTS report_history (
     CONSTRAINT fk_report_site FOREIGN KEY (site_id) REFERENCES sites(id),
     INDEX idx_report_created (created_at)
 );
+
+CREATE TABLE IF NOT EXISTS site_runtime_state (
+    site_id INT PRIMARY KEY,
+    state_json JSON NOT NULL,
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+        ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT fk_runtime_site FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+    id TINYINT PRIMARY KEY,
+    settings_json JSON NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NOT NULL,
+    detection_id BIGINT NOT NULL,
+    type ENUM('WASP_DETECTED') NOT NULL DEFAULT 'WASP_DETECTED',
+    wasp_probability DECIMAL(7,6) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    read_at DATETIME NULL,
+    CONSTRAINT fk_notification_site FOREIGN KEY (site_id) REFERENCES sites(id),
+    CONSTRAINT fk_notification_detection FOREIGN KEY (detection_id) REFERENCES detection_events(id) ON DELETE CASCADE,
+    INDEX idx_notification_created (created_at),
+    INDEX idx_notification_unread (is_read, created_at),
+    INDEX idx_notification_site_created (site_id, created_at)
+);

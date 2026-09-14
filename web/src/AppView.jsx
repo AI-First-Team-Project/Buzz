@@ -3,7 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { EnterpriseDashboard as Dashboard } from './pages/Dashboard/EnterpriseDashboard.jsx';
 import { Worksites } from './pages/Worksites/Worksites.jsx';
-import { Settings } from './pages/Settings/Settings';
+import { Settings } from './pages/Settings/Settings.jsx';
 import { FileTestPage as SoundTest } from './pages/SoundTest/FileTestPage.jsx';
 import { SoundTestDetail } from './pages/SoundTest/SoundTestDetail.jsx';
 import { MonitoringPage } from './pages/Monitoring/MonitoringPage.jsx';

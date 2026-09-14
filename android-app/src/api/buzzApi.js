@@ -78,6 +78,42 @@ export async function fetchAnalysisLogs(limit = 20) {
   return rows;
 }
 
+export async function fetchDetectionSettings() {
+  const response = await fetch(`${API_BASE_URL}/api/settings`);
+  if (!response.ok) throw new Error(await readError(response));
+  return response.json();
+}
+
+export async function saveDetectionSettings(settings) {
+  const response = await fetch(`${API_BASE_URL}/api/settings`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(settings),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return response.json();
+}
+
+export async function fetchNotifications(limit = 50) {
+  const response = await fetch(`${API_BASE_URL}/api/notifications?limit=${limit}`);
+  if (!response.ok) throw new Error(await readError(response));
+  const rows = await response.json();
+  if (!Array.isArray(rows)) throw new Error("알림 응답 형식이 올바르지 않습니다.");
+  return rows;
+}
+
+export async function markNotificationRead(id) {
+  const response = await fetch(`${API_BASE_URL}/api/notifications/${id}/read`, { method: "PATCH" });
+  if (!response.ok) throw new Error(await readError(response));
+  return response.json();
+}
+
+export async function markAllNotificationsRead() {
+  const response = await fetch(`${API_BASE_URL}/api/notifications/read-all`, { method: "PATCH" });
+  if (!response.ok) throw new Error(await readError(response));
+  return response.json();
+}
+
 export async function commandDoor(siteId, action) {
   let response;
   try {
