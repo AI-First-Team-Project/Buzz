@@ -3,10 +3,10 @@ import json
 import shutil
 from pathlib import Path
 from uuid import uuid4
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 
 from ..config import ALLOWED_EXTENSIONS, MAX_UPLOAD_BYTES, UPLOAD_DIR
-from ..database import safe_save_file_test_result, safe_list_file_test_results
+from ..database import safe_get_file_test_result, safe_save_file_test_result, safe_list_file_test_results
 from ..services.file_test_service import analyze_full_file
 from ..simulator_store import get_state, report, set_enabled
 from ..store import get_site
@@ -72,6 +72,25 @@ def test_analyze_full(file: UploadFile = File(...), site_id: int = Form(1)):
         path.unlink(missing_ok=True)
 
 @router.get("/test/history")
-def test_history(limit: int = 20):
-    db_rows = safe_list_file_test_results(max(1, min(limit, 100)))
-    return db_rows if db_rows is not None else _memory_tests[:limit]
+def test_history(
+    limit: int = Query(default=10, ge=1, le=50),
+    offset: int = Query(default=0, ge=0),
+):
+    db_rows = safe_list_file_test_results(limit, offset)
+    if db_rows is not None:
+        return db_rows
+    items = [{key: item.get(key) for key in (
+        "testId", "siteId", "fileName", "testedAt", "totalDuration", "maxConfidence", "finalResult"
+    )} for item in _memory_tests[offset:offset + limit]]
+    return {"items": items, "total": len(_memory_tests), "limit": limit, "offset": offset}
+
+
+@router.get("/test/history/{test_id}")
+def test_history_detail(test_id: str):
+    db_result = safe_get_file_test_result(test_id)
+    if db_result is not None:
+        return db_result
+    result = next((item for item in _memory_tests if item.get("testId") == test_id), None)
+    if result is None:
+        raise HTTPException(status_code=404, detail="테스트 이력을 찾을 수 없습니다.")
+    return result

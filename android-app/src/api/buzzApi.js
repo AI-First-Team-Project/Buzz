@@ -166,7 +166,12 @@ export async function analyzeFullTestAudio(file, siteId=1) {
   const response = await fetch(`${API_BASE_URL}/api/test/analyze-full`, { method:'POST', body:form });
   if (!response.ok) throw new Error(await readError(response)); return response.json();
 }
-export async function fetchTestHistory() {
-  const response = await fetch(`${API_BASE_URL}/api/test/history`);
+export async function fetchTestHistory(limit = 5, offset = 0) {
+  const response = await fetch(`${API_BASE_URL}/api/test/history?limit=${limit}&offset=${offset}`);
+  if (!response.ok) throw new Error(await readError(response)); return response.json();
+}
+
+export async function fetchTestHistoryDetail(testId) {
+  const response = await fetch(`${API_BASE_URL}/api/test/history/${encodeURIComponent(testId)}`);
   if (!response.ok) throw new Error(await readError(response)); return response.json();
 }

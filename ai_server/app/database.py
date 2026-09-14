@@ -510,25 +510,65 @@ def safe_save_file_test_result(result: dict) -> None:
         logger.exception("MySQL 파일 테스트 이력 저장 실패")
 
 
-def list_file_test_results(limit: int = 20) -> list[dict]:
+def list_file_test_results(limit: int = 20, offset: int = 0) -> dict:
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
     try:
         _ensure_file_test_table(cursor)
-        cursor.execute("SELECT result_json FROM file_test_runs ORDER BY tested_at DESC LIMIT %s", (limit,))
+        cursor.execute("SELECT COUNT(*) AS total FROM file_test_runs")
+        total = int(cursor.fetchone()["total"])
+        cursor.execute("""
+            SELECT test_id, site_id, file_name, tested_at, total_duration,
+                   max_confidence, final_result
+            FROM file_test_runs
+            ORDER BY tested_at DESC LIMIT %s OFFSET %s
+        """, (limit, offset))
         rows = cursor.fetchall()
-        return [row['result_json'] if isinstance(row['result_json'], dict) else json.loads(row['result_json']) for row in rows]
+        items = [{
+            "testId": row["test_id"],
+            "siteId": int(row["site_id"]),
+            "fileName": row["file_name"],
+            "testedAt": row["tested_at"].isoformat(),
+            "totalDuration": float(row["total_duration"]),
+            "maxConfidence": float(row["max_confidence"]),
+            "finalResult": row["final_result"],
+        } for row in rows]
+        return {"items": items, "total": total, "limit": limit, "offset": offset}
     finally:
         cursor.close()
         if connection.is_connected(): connection.close()
 
 
-def safe_list_file_test_results(limit: int = 20) -> list[dict] | None:
+def get_file_test_result(test_id: str) -> dict | None:
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        _ensure_file_test_table(cursor)
+        cursor.execute("SELECT result_json FROM file_test_runs WHERE test_id=%s", (test_id,))
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        return row["result_json"] if isinstance(row["result_json"], dict) else json.loads(row["result_json"])
+    finally:
+        cursor.close()
+        if connection.is_connected(): connection.close()
+
+
+def safe_list_file_test_results(limit: int = 20, offset: int = 0) -> dict | None:
     if not db_enabled(): return None
     try:
-        return list_file_test_results(limit)
+        return list_file_test_results(limit, offset)
     except Exception:
         logger.exception("MySQL 파일 테스트 이력 조회 실패")
+        return None
+
+
+def safe_get_file_test_result(test_id: str) -> dict | None:
+    if not db_enabled(): return None
+    try:
+        return get_file_test_result(test_id)
+    except Exception:
+        logger.exception("MySQL 파일 테스트 상세 조회 실패")
         return None
 
 
