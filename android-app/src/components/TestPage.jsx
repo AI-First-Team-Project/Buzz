@@ -3,11 +3,11 @@ import { analyzeFullTestAudio, fetchAnalysisLogs, fetchTestHistory } from '../ap
 import { WaveformChart,SpectrumChart,MelSpectrogram,MfccHeatmap } from './AudioAnalysisCharts';
 import { formatShortDateTime } from '../utils/formatDateTime';
 import './MobileSystemLog.css';
-import BottomNav from './BottomNav';
+import BottomNav from './BottomNavV2.jsx';
 const fmt=value=>Number(value||0).toFixed(1);
 export default function TestPage({setPage}){
  const [file,setFile]=useState(null),[site,setSite]=useState(1),[loading,setLoading]=useState(false),[run,setRun]=useState(null),[history,setHistory]=useState([]),[logs,setLogs]=useState([]),[chunk,setChunk]=useState(null),[error,setError]=useState('');
- const reload=()=>Promise.allSettled([fetchTestHistory(),fetchAnalysisLogs(20)]).then(([tests,system])=>{if(tests.status==='fulfilled')setHistory(tests.value);if(system.status==='fulfilled')setLogs(system.value)});useEffect(()=>{reload()},[]);
+ const reload=()=>Promise.allSettled([fetchTestHistory(),fetchAnalysisLogs(20)]).then(([tests,system])=>{if(tests.status==='fulfilled')setHistory(tests.value);if(system.status==='fulfilled')setLogs(system.value)});useEffect(()=>{void reload();},[]);
  const analyze=async()=>{if(!file)return;setLoading(true);setError('');try{const result=await analyzeFullTestAudio(file,site);setRun(result);await reload()}catch(reason){setError(reason?.message||'테스트 분석에 실패했습니다.')}finally{setLoading(false)}};
  return <div className="buzz-commercial-page"><main className="buzz-commercial-content buzz-test-page">
   <div className="buzz-page-heading"><h1>파일 테스트</h1><p className="buzz-page-desc">음원 파일을 2초 단위로 실제 AI 모델로 분석합니다.</p></div>

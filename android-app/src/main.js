@@ -3,7 +3,7 @@ import { jsx as _jsx } from "react/jsx-runtime";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
-import App from "./App";
+import App from "./App.jsx";
 /* Android(WebView)에서 상태바를 딥 네이비로 맞춤 — 웹에서는 무시됨 */
 const isNative = typeof window !== "undefined" && Boolean(window.Capacitor?.isNativePlatform?.());
 if (isNative) {

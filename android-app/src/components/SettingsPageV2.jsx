@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import BottomNav from "./BottomNav";
+import BottomNav from "./BottomNavV2.jsx";
 
 function Toggle({ value, onChange }) {
   return (

@@ -2,7 +2,7 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useState } from 'react';
 import { getLatestDetection, getSiteRuntimeStatus } from '../types';
-import BottomNav from './BottomNav';
+import BottomNav from './BottomNavV2.jsx';
 import Icon from './Icon';
 const RESULTS = [
     { id: 1, time: '09:42:15', site: '사업장 3', insect: 'wasps', status: 'danger', confidence: 96, count: 1, gateAction: '개폐기 자동 차단', gateStatus: '차단' },
