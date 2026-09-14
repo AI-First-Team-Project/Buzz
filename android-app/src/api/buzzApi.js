@@ -62,6 +62,22 @@ export async function fetchSiteStatuses() {
   return data;
 }
 
+export async function fetchDetectionSettings() {
+  const response = await fetch(`${API_BASE_URL}/api/settings`);
+  if (!response.ok) throw new Error(await readError(response));
+  return response.json();
+}
+
+export async function saveDetectionSettings(settings) {
+  const response = await fetch(`${API_BASE_URL}/api/settings`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(settings),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return response.json();
+}
+
 export async function fetchHistory(limit = 500) {
   const response = await fetch(`${API_BASE_URL}/api/history?limit=${limit}`);
   if (!response.ok) throw new Error(await readError(response));

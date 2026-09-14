@@ -1,6 +1,7 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BottomNav from "./BottomNavV2.jsx";
+import { fetchDetectionSettings, saveDetectionSettings } from "../api/buzzApi.js";
 
 function Toggle({ value, onChange }) {
   return (
@@ -27,8 +28,45 @@ export default function SettingsPage({ setPage }) {
   const [notification, setNotification] = useState(true);
   const [autoClose, setAutoClose] = useState(true);
   const [vibration, setVibration] = useState(true);
-  const [threshold, setThreshold] = useState(85);
+  const [threshold, setThreshold] = useState(70);
+  const [savedSettings, setSavedSettings] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
   const [systemOpen, setSystemOpen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchDetectionSettings().then((settings) => {
+      if (!active) return;
+      setThreshold(settings.wasp_threshold_percent);
+      setNotification(settings.wasp_alert);
+      setVibration(settings.vibration);
+      setAutoClose(settings.auto_close);
+      setSavedSettings(settings);
+    }).catch((error) => {
+      if (active) setMessage(error.message);
+    });
+    return () => { active = false; };
+  }, []);
+
+  const saveAll = async () => {
+    setSaving(true);
+    setMessage("");
+    try {
+      const saved = await saveDetectionSettings({
+        wasp_threshold_percent: threshold,
+        wasp_alert: notification,
+        vibration,
+        auto_close: autoClose,
+      });
+      setSavedSettings(saved);
+      setMessage("설정이 저장되었습니다.");
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="buzz-commercial-page">
@@ -46,12 +84,12 @@ export default function SettingsPage({ setPage }) {
             <SettingRow
               title="말벌 감지 알림"
               desc="위험 판정 시 즉시 알림"
-              right={<Toggle value={notification} onChange={setNotification} />}
+              right={<Toggle value={notification} onChange={(value) => { setNotification(value); setMessage(""); }} />}
             />
             <SettingRow
               title="진동"
               desc="위험 알림과 함께 진동 사용"
-              right={<Toggle value={vibration} onChange={setVibration} />}
+              right={<Toggle value={vibration} onChange={(value) => { setVibration(value); setMessage(""); }} />}
             />
           </div>
         </section>
@@ -64,17 +102,21 @@ export default function SettingsPage({ setPage }) {
             <SettingRow
               title="위험 시 자동 폐쇄"
               desc="말벌 판정 시 출입문을 자동으로 닫음"
-              right={<Toggle value={autoClose} onChange={setAutoClose} />}
+              right={<Toggle value={autoClose} onChange={(value) => { setAutoClose(value); setMessage(""); }} />}
             />
             <div className="buzz-setting-threshold">
               <div><b>자동 폐쇄 기준</b><span>{threshold}%</span></div>
-              <p>말벌 신뢰도가 설정값 이상이면 위험 상태로 처리합니다.</p>
-              <input type="range" min="60" max="99" value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} />
+              <p>말벌 확률이 설정값 이상으로 3회 연속 탐지되면 위험 상태로 처리합니다.</p>
+              <input type="range" min="60" max="99" value={threshold} onChange={(e) => { setThreshold(Number(e.target.value)); setMessage(""); }} />
               <div className="buzz-threshold-labels"><span>60%</span><span>99%</span></div>
+              <button type="button" className="buzz-threshold-save" onClick={saveAll} disabled={saving || !savedSettings || (savedSettings.wasp_threshold_percent === threshold && savedSettings.wasp_alert === notification && savedSettings.vibration === vibration && savedSettings.auto_close === autoClose)}>
+                {saving ? "저장 중..." : "설정 저장"}
+              </button>
+              {message && <p role="status" className="buzz-threshold-message">{message}</p>}
             </div>
           </div>
           <div className="buzz-settings-info">
-            말벌 감지 중 사용자가 문을 열어도 안전 정책에 따라 다시 자동으로 닫힙니다.
+            {autoClose ? "말벌 감지 중 사용자가 문을 열어도 안전 정책에 따라 다시 자동으로 닫힙니다." : "자동 폐쇄가 꺼져 있어도 위험 상태 판정과 화면 표시는 계속됩니다."}
           </div>
         </section>
 

@@ -60,6 +60,99 @@ def _json(value) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+def _ensure_detection_settings_table(cursor) -> None:
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS detection_settings (
+            id TINYINT PRIMARY KEY,
+            wasp_threshold_percent TINYINT NOT NULL
+        )
+    """)
+
+
+def load_wasp_threshold_percent() -> int | None:
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    try:
+        _ensure_detection_settings_table(cursor)
+        cursor.execute("SELECT wasp_threshold_percent FROM detection_settings WHERE id = 1")
+        row = cursor.fetchone()
+        return int(row[0]) if row else None
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()
+
+
+def save_wasp_threshold_percent(percent: int) -> None:
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    try:
+        _ensure_detection_settings_table(cursor)
+        cursor.execute(
+            """INSERT INTO detection_settings (id, wasp_threshold_percent)
+               VALUES (1, %s)
+               ON DUPLICATE KEY UPDATE wasp_threshold_percent = VALUES(wasp_threshold_percent)""",
+            (percent,),
+        )
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()
+
+
+def _ensure_app_settings_table(cursor) -> None:
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS app_settings (
+            id TINYINT PRIMARY KEY,
+            settings_json JSON NOT NULL
+        )
+    """)
+
+
+def load_app_settings() -> dict | None:
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    try:
+        _ensure_app_settings_table(cursor)
+        cursor.execute("SELECT settings_json FROM app_settings WHERE id = 1")
+        row = cursor.fetchone()
+        if row:
+            return row[0] if isinstance(row[0], dict) else json.loads(row[0])
+        # Preserve threshold values saved by the previous version.
+        _ensure_detection_settings_table(cursor)
+        cursor.execute("SELECT wasp_threshold_percent FROM detection_settings WHERE id = 1")
+        legacy = cursor.fetchone()
+        return {"wasp_threshold_percent": int(legacy[0])} if legacy else None
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()
+
+
+def save_app_settings(settings: dict) -> None:
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    try:
+        _ensure_app_settings_table(cursor)
+        cursor.execute(
+            """INSERT INTO app_settings (id, settings_json) VALUES (1, %s)
+               ON DUPLICATE KEY UPDATE settings_json = VALUES(settings_json)""",
+            (_json(settings),),
+        )
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()
+
+
 def _ensure_site_runtime_table(cursor) -> None:
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS site_runtime_state (

@@ -5,8 +5,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 
-from .routers import analysis, health, monitoring, operations
-from .database import db_enabled, list_site_records, list_site_runtime_states
+from .routers import analysis, health, monitoring, operations, settings
+from .database import db_enabled, list_site_records, list_site_runtime_states, load_app_settings
+from .detection_settings import set_settings
 from .store import register_site, restore_sites
 
 logger = logging.getLogger("buzz.startup")
@@ -21,6 +22,12 @@ async def lifespan(app: FastAPI):
             restore_sites(list_site_runtime_states())
         except Exception:
             logger.exception("MySQL 사업장 현재 상태 복원 실패")
+        try:
+            saved_settings = load_app_settings()
+            if saved_settings is not None:
+                set_settings(saved_settings)
+        except Exception:
+            logger.exception("MySQL 말벌 판정 기준 복원 실패")
     yield
 
 app = FastAPI(
@@ -45,6 +52,7 @@ app.include_router(health.router)
 app.include_router(analysis.router)
 app.include_router(monitoring.router)
 app.include_router(operations.router)
+app.include_router(settings.router)
 
 
 @app.get("/", tags=["system"])

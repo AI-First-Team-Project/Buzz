@@ -1,19 +1,14 @@
 import { jsx as _jsx } from "react/jsx-runtime";
 // 모니터링 - 사업장 상태, 위험 알림, 출입문 및 설정 공유
-import { createContext, useContext, useEffect, useState } from 'react';
-import { commandDoor, fetchHistory, fetchSiteStatuses } from '../api/buzzApi';
-const defaultSettings = { waspAlert: true, vibration: true, autoClose: true, autoCloseThreshold: 85 };
-const storageKey = 'buzz-web-settings-v1';
-function loadSettings() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
-        if (saved && ['waspAlert', 'vibration', 'autoClose'].every((key) => typeof saved[key] === 'boolean') &&
-            Number.isFinite(saved.autoCloseThreshold) && saved.autoCloseThreshold >= 60 && saved.autoCloseThreshold <= 99)
-            return saved;
-    }
-    catch { /* 저장소를 사용할 수 없으면 기본 설정 사용 */ }
-    return defaultSettings;
-}
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { commandDoor, fetchDetectionSettings, fetchHistory, fetchSiteStatuses, saveDetectionSettings } from '../api/buzzApi';
+const defaultSettings = { waspAlert: true, vibration: true, autoClose: true, autoCloseThreshold: 70 };
+const mapSettings = (saved) => ({
+    waspAlert: saved.wasp_alert,
+    vibration: saved.vibration,
+    autoClose: saved.auto_close,
+    autoCloseThreshold: saved.wasp_threshold_percent,
+});
 const Context = createContext(null);
 
 function mapSite(site) {
@@ -47,7 +42,10 @@ function mapEvent(event) {
 
 export function MonitoringProvider({ children }) {
     const [state, setState] = useState(() => ({ sites: [], detectionEvents: [] }));
-    const [settings, setSettings] = useState(loadSettings);
+    const [settings, setSettings] = useState(defaultSettings);
+    const settingsRef = useRef(settings);
+    settingsRef.current = settings;
+    const previousStatuses = useRef(null);
     const [dangerDeadlines, setDangerDeadlines] = useState({});
     const refreshMonitoring = async () => {
         const [sitesResult, historyResult] = await Promise.allSettled([fetchSiteStatuses(), fetchHistory()]);
@@ -56,11 +54,25 @@ export function MonitoringProvider({ children }) {
             detectionEvents: historyResult.status === 'fulfilled' ? historyResult.value.map(mapEvent) : prev.detectionEvents,
         }));
     };
+    const refreshSettings = async () => {
+        const saved = mapSettings(await fetchDetectionSettings());
+        setSettings(saved);
+        return saved;
+    };
+    useEffect(() => { refreshSettings().catch(() => {}); }, []);
     useEffect(() => {
         let cancelled = false;
         const refresh = async () => {
             const [sitesResult, historyResult] = await Promise.allSettled([fetchSiteStatuses(), fetchHistory()]);
             if (cancelled) return;
+            if (sitesResult.status === 'fulfilled') {
+                const current = sitesResult.value;
+                if (previousStatuses.current && settingsRef.current.waspAlert && settingsRef.current.vibration &&
+                    current.some((site) => previousStatuses.current[site.site_id] === 'NORMAL' && site.status === 'DANGER')) {
+                    try { navigator.vibrate?.([200, 100, 200]); } catch { /* 진동 미지원 환경 */ }
+                }
+                previousStatuses.current = Object.fromEntries(current.map((site) => [site.site_id, site.status]));
+            }
             setState((prev) => ({
                 sites: sitesResult.status === 'fulfilled' ? sitesResult.value.map(mapSite) : prev.sites,
                 detectionEvents: historyResult.status === 'fulfilled' ? historyResult.value.map(mapEvent) : prev.detectionEvents,
@@ -129,28 +141,18 @@ export function MonitoringProvider({ children }) {
             catch { /* 미지원 브라우저에서는 화면 알림 사용 */ }
         }
     }
-    function saveSettings(next) {
-        try {
-            localStorage.setItem(storageKey, JSON.stringify(next));
-        }
-        catch {
-            return false;
-        }
-        setSettings(next);
-        setState((prev) => {
-            const events = [];
-            const sites = prev.sites.map((site) => {
-                if (!next.autoClose || site.status !== 'danger' || site.aiLabel !== 'wasp' || site.aiConfidence < next.autoCloseThreshold || site.door === 'closed')
-                    return site;
-                const updated = { ...site, door: 'closed' };
-                events.push(makeEvent(updated, 'door', '자동 보호 · 문 닫기'));
-                return updated;
-            });
-            return { sites, detectionEvents: [...events, ...prev.detectionEvents] };
+    async function saveSettings(next) {
+        const saved = await saveDetectionSettings({
+            wasp_alert: next.waspAlert,
+            vibration: next.vibration,
+            auto_close: next.autoClose,
+            wasp_threshold_percent: next.autoCloseThreshold,
         });
+        setSettings(mapSettings(saved));
+        await refreshMonitoring();
         return true;
     }
-    return _jsx(Context.Provider, { value: { ...state, settings, saveSettings, setDoor, detect, refreshMonitoring }, children: children });
+    return _jsx(Context.Provider, { value: { ...state, settings, saveSettings, refreshSettings, setDoor, detect, refreshMonitoring }, children: children });
 }
 export function useMonitoring() {
     const context = useContext(Context);

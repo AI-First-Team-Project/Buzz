@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import BottomNav from './BottomNavV2.jsx';
 import { MelSpectrogram, WaveformChart } from './AudioAnalysisCharts.jsx';
-import { commandDoor, fetchHistory, fetchLatestAnalysis, fetchSiteStatuses } from '../api/buzzApi';
+import { commandDoor, fetchDetectionSettings, fetchHistory, fetchLatestAnalysis, fetchSiteStatuses } from '../api/buzzApi';
 import './EnterpriseMobileHome.css';
 import './EnterpriseMobileB2B.css';
 import './MobileOverflow.css';
@@ -28,15 +28,24 @@ export default function EnterpriseMobileHome({ setPage }) {
   const [selectedId, setSelectedId] = useState(1);
   const [history, setHistory] = useState([]);
   const [analysis, setAnalysis] = useState(null);
+  const [alertSettings, setAlertSettings] = useState({ wasp_alert: true, vibration: true });
+  const previousStatuses = useRef(null);
   const [error, setError] = useState('');
   const site = useMemo(() => sites.find((item) => item.id === selectedId) || sites[0], [sites, selectedId]);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [siteResult, historyResult] = await Promise.allSettled([fetchSiteStatuses(), fetchHistory(20)]);
+      const [siteResult, historyResult, settingsResult] = await Promise.allSettled([fetchSiteStatuses(), fetchHistory(20), fetchDetectionSettings()]);
       if (cancelled) return;
+      const currentSettings = settingsResult.status === 'fulfilled' ? settingsResult.value : alertSettings;
+      if (settingsResult.status === 'fulfilled') setAlertSettings(currentSettings);
       if (siteResult.status === 'fulfilled') {
+        if (previousStatuses.current && currentSettings.wasp_alert && currentSettings.vibration &&
+            siteResult.value.some((item) => previousStatuses.current[item.site_id] === 'NORMAL' && item.status === 'DANGER')) {
+          try { navigator.vibrate?.([200, 100, 200]); } catch { /* 진동 미지원 환경 */ }
+        }
+        previousStatuses.current = Object.fromEntries(siteResult.value.map((item) => [item.site_id, item.status]));
         setSites(siteResult.value.map(mapSite));
         setError('');
       } else {
@@ -97,7 +106,7 @@ export default function EnterpriseMobileHome({ setPage }) {
 
     <nav className="em-site-tabs" aria-label="사업장 선택">{sites.map((item) => <button key={item.id} className={item.id === site.id ? 'active' : ''} onClick={() => setSelectedId(item.id)}>사업장 {item.id}</button>)}</nav>
 
-    {site.danger && <section className="em-alert"><strong>위험 상태를 확인해 주세요.</strong><span>{site.name}에서 말벌 신호가 감지되었습니다.</span></section>}
+    {site.danger && alertSettings.wasp_alert && <section className="em-alert"><strong>위험 상태를 확인해 주세요.</strong><span>{site.name}에서 말벌 신호가 감지되었습니다.</span></section>}
 
     <section className="em-monitor-card">
       <div className="em-monitor-title"><div><h2>{site.name}</h2><small><i/> 실시간 수신 중</small></div></div>

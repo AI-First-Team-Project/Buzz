@@ -15,6 +15,8 @@ async function request(path, options = {}) {
 }
 export async function analyzeTestAudio(file) { const form=new FormData(); form.append('file',file); return request('/api/test/analyze',{method:'POST',body:form}); }
 export async function fetchSiteStatuses() { const data=await request('/api/status'); if(!Array.isArray(data)) throw new Error('사업장 상태 응답 형식이 올바르지 않습니다.'); return data; }
+export async function fetchDetectionSettings() { return request('/api/settings'); }
+export async function saveDetectionSettings(settings) { return request('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(settings)}); }
 export async function fetchHistory(limit=500) { return request(`/api/history?limit=${limit}`); }
 export async function fetchAnalysisLogs(limit=100, filters={}) { const query=new URLSearchParams({limit:String(limit)});Object.entries(filters).forEach(([key,value])=>{if(value!==''&&value!=null&&value!=='all')query.set(key,String(value))});return request(`/api/analysis-logs?${query}`); }
 export async function fetchAnalysisLogDetail(id){return request(`/api/analysis-logs/${id}`)}

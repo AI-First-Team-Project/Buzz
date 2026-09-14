@@ -4,6 +4,7 @@ from threading import Lock
 from uuid import uuid4
 
 from .database import safe_save_history_events, safe_save_site_runtime_state
+from .detection_settings import is_auto_close_enabled
 from .schemas import Probabilities
 from .services.state_service import advance_detection_state
 
@@ -114,6 +115,42 @@ def list_history(limit: int = 100) -> list[dict]:
         return deepcopy(_history[:limit])
 
 
+def reset_detection_streaks() -> None:
+    """A changed threshold starts a fresh three-detection sequence."""
+    with _lock:
+        for site in _sites.values():
+            if site["consecutive_wasp"] or site["consecutive_non_wasp"]:
+                site["consecutive_wasp"] = 0
+                site["consecutive_non_wasp"] = 0
+                safe_save_site_runtime_state(site)
+
+
+def close_dangerous_doors() -> list[int]:
+    """Apply a newly enabled auto-close policy to sites already in danger."""
+    closed = []
+    with _lock:
+        for site in _sites.values():
+            if site["status"] != "DANGER" or site["door_status"] != "OPEN":
+                continue
+            site["door_status"] = "CLOSED"
+            closed.append(site["site_id"])
+            _record_events([{
+                "id": str(uuid4()),
+                "type": "gate",
+                "site_id": site["site_id"],
+                "site_name": site["site_name"],
+                "title": "출입문 자동 폐쇄",
+                "timestamp": datetime.now().astimezone(),
+                "result": site["detected_class"],
+                "confidence": site["confidence"],
+                "door_status": "CLOSED",
+                "action": "자동 폐쇄",
+                "analysis_id": site["latest_analysis_id"],
+            }])
+            safe_save_site_runtime_state(site)
+    return closed
+
+
 def apply_prediction(
     site_id: int,
     class_name: str,
@@ -144,6 +181,9 @@ def apply_prediction(
 
         # 상태가 실제로 전환될 때만 이벤트를 생성하여 중복 알림을 막는다.
         if decision.transition == "danger":
+            close_door = is_auto_close_enabled() and site["door_status"] != "CLOSED"
+            if close_door:
+                site["door_status"] = "CLOSED"
             events = [{
                 "id": str(uuid4()),
                 "type": "danger",
@@ -153,12 +193,11 @@ def apply_prediction(
                 "timestamp": timestamp,
                 "result": class_name,
                 "confidence": confidence,
-                "door_status": "CLOSED",
+                "door_status": site["door_status"],
                 "action": "위험 상태 전환",
                 "analysis_id": analysis_id,
             }]
-            if site["door_status"] != "CLOSED":
-                site["door_status"] = "CLOSED"
+            if close_door:
                 events.append({
                     "id": str(uuid4()),
                     "type": "gate",
@@ -190,7 +229,7 @@ def apply_prediction(
                 "analysis_id": analysis_id,
             }])
 
-        elif decision.status == "DANGER" and class_name == "wasp" and site["door_status"] == "OPEN":
+        elif decision.status == "DANGER" and class_name == "wasp" and site["door_status"] == "OPEN" and is_auto_close_enabled():
             # 위험 중 수동 개방 후 말벌이 다시 탐지되면 즉시 재폐쇄한다.
             site["door_status"] = "CLOSED"
             _record_events([{

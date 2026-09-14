@@ -5,7 +5,8 @@ from threading import Lock
 
 import numpy as np
 
-from ..config import AI_MODEL_DIR, AI_MODEL_NAME, AI_MODEL_THRESHOLD, PROJECT_ROOT
+from ..config import AI_MODEL_DIR, AI_MODEL_NAME, PROJECT_ROOT
+from ..detection_settings import get_wasp_threshold
 
 # ai_server/run.py를 ai_server 폴더에서 실행해도 형제 ai_model 패키지를 찾게 한다.
 project_root = str(PROJECT_ROOT)
@@ -37,7 +38,7 @@ def predict_audio(audio_path: Path) -> dict:
     # 사용자 테스트와 자동 분석이 겹쳐도 하나의 모델 인스턴스를 동시에 호출하지 않는다.
     with _INFERENCE_LOCK:
         result = predict_with_single_model(y, sr, _MODELS, AI_MODEL_NAME)
-        result = make_prediction_result(result["probabilities"], AI_MODEL_THRESHOLD)
+        result = make_prediction_result(result["probabilities"], get_wasp_threshold())
     probabilities = {
         "non_wasp": float(result["probabilities"][0]),
         "wasp": float(result["probabilities"][1]),
@@ -89,9 +90,10 @@ def predict_audio_batch(audio_paths: list[Path]) -> list[dict]:
             )
             probabilities_batch = ordered_ml_probabilities(_MODELS[AI_MODEL_NAME], features)
 
+    threshold = get_wasp_threshold()
     responses = []
     for probabilities in probabilities_batch:
-        result = make_prediction_result(probabilities, AI_MODEL_THRESHOLD)
+        result = make_prediction_result(probabilities, threshold)
         responses.append(
             {
                 "prediction": {
