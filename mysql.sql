@@ -56,6 +56,14 @@ CREATE TABLE IF NOT EXISTS gate_status (
       FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS site_runtime_state (
+    site_id INT PRIMARY KEY,
+    state_json JSON NOT NULL,
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+        ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT fk_runtime_site FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS gate_events (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     site_id INT NOT NULL,

@@ -1,6 +1,6 @@
 # 🐝 Buzz — AI 사운드 기반 말벌 침입 감지·예측 시스템
 
-> 양봉장 주변 음향을 AI로 분석해 **wasp / bee / other**를 분류하고, 말벌 감지 시 위험 상태·가상 방어문·상태별 영상을 Android 앱에서 확인하는 프로젝트입니다.
+> 양봉장 주변 음향을 AI로 분석해 **wasp / non_wasp**를 분류하고, 말벌 감지 시 위험 상태·가상 방어문·상태별 영상을 Android 앱에서 확인하는 프로젝트입니다.
 
 ## 1. 프로젝트 목표
 
@@ -10,8 +10,8 @@
 음향 입력
 → FastAPI
 → 2초 / 24kHz 전처리
-→ Best Model
-→ wasp / bee / other 판정
+→ CNN 모델
+→ wasp / non_wasp 판정
 → Android
 → 위험 상태 / 가상 방어문 / 영상 / 이력
 ```
@@ -24,7 +24,7 @@
 | 발표일 | 2026.09.15 |
 | 팀 인원 | 4명 |
 | AI 입력 기준 | 2초 / 24kHz |
-| 분류 클래스 | wasp / bee / other |
+| 분류 클래스 | wasp / non_wasp |
 | Backend | FastAPI |
 | App | React + Vite + Capacitor + Android Studio |
 | AI 비교 모델 | RandomForest / LightGBM / XGBoost / CNN / CRNN / MobileNetV2 |
@@ -42,9 +42,9 @@
                 ↓
        2초 / 24kHz 전처리
                 ↓
-           Best Model
+            CNN 모델
                 ↓
-   wasp / bee / other + confidence
+    wasp / non_wasp + confidence
                 ↓
             Android App
         ┌───────┼─────────┐
@@ -86,7 +86,7 @@ wasp 감지
 → 위험/문 제어 이력 저장
 ```
 
-위험 해제 조건은 연속 미검출 횟수 또는 시간 기준으로 최종 조정합니다.
+기본 설정에서는 연속 말벌 감지 3회에 위험으로 전환하고, 연속 미감지 3회에 정상으로 복귀합니다. 정상 복귀 시 가상 방어문은 자동으로 열리지 않습니다.
 
 ## 5. 사용자 테스트
 
@@ -96,7 +96,7 @@ wasp 감지
 MP3/WAV
 → FastAPI
 → 2초 / 24kHz 전처리
-→ Best Model
+→ CNN 모델
 → 수치 JSON
 → Android 시각화
 ```
@@ -105,7 +105,7 @@ MP3/WAV
 
 ## 6. AI 모델 전략
 
-동일한 데이터 분할과 전처리 조건으로 아래 6개 모델을 비교한 뒤 **Best Model 1개만 서비스에 탑재**합니다.
+아래 6개 모델을 실험 대상으로 관리하며, **현재 서비스에는 CNN 이진분류 모델**을 탑재했습니다. 최종 성능 비교와 모델 선정은 별도 검증이 필요합니다.
 
 - RandomForest
 - LightGBM
@@ -158,10 +158,10 @@ MP3/WAV
 ### 꿀벌
 - Hugging Face `NOSInovacao/AI-Belha`
 - https://huggingface.co/datasets/NOSInovacao/AI-Belha
-- 벌통/꿀벌 음향을 `bee` 클래스 원천 데이터로 활용
+- 벌통/꿀벌 음향을 `non_wasp` 클래스 원천 데이터로 활용
 
-### Other
-- 프로젝트에서 별도로 확보한 환경음 및 기타 음원을 `other` 클래스로 구성
+### 기타 환경음
+- 별도로 확보한 환경음 및 기타 음원도 현재 모델에서는 `non_wasp` 클래스에 포함
 
 ## 9. FastAPI 분석 응답
 
@@ -217,7 +217,7 @@ Capacitor/Android 빌드는 `android-app/ANDROID-BUILD-GUIDE.md`를 참고합니
 ### 구현/구조 정리 완료
 - [x] FastAPI 기본 서버 및 API 구조
 - [x] 2초 / 24kHz 분석 기준
-- [x] wasp / bee / other 응답 데이터 계약
+- [x] wasp / non_wasp 응답 데이터 계약
 - [x] Waveform / FFT / Mel-Spectrogram / MFCC 수치 JSON 구조
 - [x] Kafka 제거 및 FastAPI 직접 입력 구조
 - [x] 실제/사전 수집 영상 데이터 시각화 방향 확정
@@ -227,12 +227,11 @@ Capacitor/Android 빌드는 `android-app/ANDROID-BUILD-GUIDE.md`를 참고합니
 - [ ] 6개 모델 동일 조건 실제 성능 비교
 - [ ] Best Model 최종 선정
 - [ ] 노이즈/증강 실험
-- [ ] Best Model 서비스용 `.py` 모듈화
-- [ ] `predictor.py`에 실제 Best Model 연결
+- [x] `predictor.py`에 CNN 모델 연결
 - [ ] FastAPI → Android End-to-End 연동
-- [ ] 위험 해제 / 가상 문 OPEN·CLOSED 로직
+- [x] 연속 감지·미감지에 따른 위험 해제 / 가상 문 OPEN·CLOSED 로직
 - [ ] 상태별 영상 연동
-- [ ] DB 이력 저장
+- [x] MySQL 분석·상태 변경 이력 저장 및 사업장 현재 상태 복원 코드
 - [ ] Docker / Jenkins CI/CD
 - [ ] 최종 통합 테스트 및 발표 준비
 

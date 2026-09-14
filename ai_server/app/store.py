@@ -3,7 +3,7 @@ from datetime import datetime
 from threading import Lock
 from uuid import uuid4
 
-from .database import safe_save_history_events
+from .database import safe_save_history_events, safe_save_site_runtime_state
 from .schemas import Probabilities
 from .services.state_service import advance_detection_state
 
@@ -83,6 +83,30 @@ def register_site(site_id: int, site_name: str) -> dict:
                 "consecutive_non_wasp": 0,
             }
         return deepcopy(_sites[site_id])
+
+
+def restore_sites(saved_sites: list[dict]) -> None:
+    """Restore durable operating state before requests or simulator predictions arrive."""
+    with _lock:
+        for saved in saved_sites:
+            site_id = saved.get("site_id")
+            if site_id not in _sites:
+                continue
+            site = _sites[site_id]
+            site.update({
+                "status": saved["status"],
+                "detected_class": saved["detected_class"],
+                "confidence": saved["confidence"],
+                "probabilities": Probabilities.model_validate(saved["probabilities"]),
+                "door_status": saved["door_status"],
+                "last_analysis_time": (
+                    datetime.fromisoformat(saved["last_analysis_time"])
+                    if saved["last_analysis_time"] else None
+                ),
+                "latest_analysis_id": saved["latest_analysis_id"],
+                "consecutive_wasp": saved["consecutive_wasp"],
+                "consecutive_non_wasp": saved["consecutive_non_wasp"],
+            })
 
 
 def list_history(limit: int = 100) -> list[dict]:
@@ -183,6 +207,7 @@ def apply_prediction(
                 "analysis_id": analysis_id,
             }])
 
+        safe_save_site_runtime_state(site)
         return deepcopy(site)
 
 
@@ -212,4 +237,5 @@ def set_door(site_id: int, action: str) -> dict:
             "analysis_id": site["latest_analysis_id"],
         }])
 
+        safe_save_site_runtime_state(site)
         return deepcopy(site)

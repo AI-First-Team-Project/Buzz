@@ -1,13 +1,33 @@
+from contextlib import asynccontextmanager
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 
 from .routers import analysis, health, monitoring, operations
+from .database import db_enabled, list_site_records, list_site_runtime_states
+from .store import register_site, restore_sites
+
+logger = logging.getLogger("buzz.startup")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if db_enabled():
+        try:
+            for record in list_site_records():
+                register_site(int(record["id"]), record["name"])
+            restore_sites(list_site_runtime_states())
+        except Exception:
+            logger.exception("MySQL 사업장 현재 상태 복원 실패")
+    yield
 
 app = FastAPI(
     title="Buzz AI Sound Detection API",
     description="말벌 포함 여부 이진분류 및 Buzz 앱 연동 API",
     version="0.3.0",
+    lifespan=lifespan,
 )
 
 # 개발 중 React(Vite), Android WebView/Capacitor 연동을 위해 허용.

@@ -128,7 +128,7 @@ class AnalysisContractTest(unittest.TestCase):
         self.assertEqual(latest['analysisId'], response.json()[0]['analysis']['analysisId'])
         self.assertEqual(len(latest['waveform']['amplitude']), 1500)
         self.assertEqual(np.asarray(latest['spectrogram']['db']).shape, (128, 96))
-        self.assertNotIn('mfcc', latest)
+        self.assertEqual(np.asarray(latest['mfcc']['coefficients']).shape, (20, 96))
         self.assertEqual(latest, cached_response.json())
         self.assertEqual(latest_response.headers.get('content-encoding'), 'gzip')
 

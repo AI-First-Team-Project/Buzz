@@ -60,6 +60,70 @@ def _json(value) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+def _ensure_site_runtime_table(cursor) -> None:
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS site_runtime_state (
+            site_id INT PRIMARY KEY,
+            state_json JSON NOT NULL,
+            updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+                ON UPDATE CURRENT_TIMESTAMP(6),
+            CONSTRAINT fk_runtime_site FOREIGN KEY (site_id) REFERENCES sites(id)
+                ON DELETE CASCADE
+        )
+    """)
+
+
+def save_site_runtime_state(site: dict) -> None:
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    try:
+        _ensure_site_runtime_table(cursor)
+        payload = dict(site)
+        payload["probabilities"] = site["probabilities"].model_dump()
+        if site["last_analysis_time"] is not None:
+            payload["last_analysis_time"] = site["last_analysis_time"].isoformat()
+        cursor.execute(
+            """INSERT INTO site_runtime_state (site_id, state_json, updated_at)
+               VALUES (%s, %s, UTC_TIMESTAMP(6))
+               ON DUPLICATE KEY UPDATE state_json = VALUES(state_json),
+                   updated_at = VALUES(updated_at)""",
+            (site["site_id"], _json(payload)),
+        )
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()
+
+
+def safe_save_site_runtime_state(site: dict) -> None:
+    if not db_enabled():
+        return
+    try:
+        save_site_runtime_state(site)
+    except Exception:
+        logger.exception("MySQL 사업장 현재 상태 저장 실패: site_id=%s", site["site_id"])
+
+
+def list_site_runtime_states() -> list[dict]:
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        _ensure_site_runtime_table(cursor)
+        cursor.execute("SELECT site_id, state_json FROM site_runtime_state")
+        return [
+            row["state_json"] if isinstance(row["state_json"], dict) else json.loads(row["state_json"])
+            for row in cursor.fetchall()
+        ]
+    finally:
+        cursor.close()
+        if connection.is_connected():
+            connection.close()
+
+
 def save_detection_result(
     *,
     site_id: int | None,
