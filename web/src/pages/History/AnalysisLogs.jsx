@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchAnalysisLogs } from '../../api/buzzApi';
 import { PageHeader } from '../../components/PageHeader';
+import { formatOperationalTime } from '../../utils/formatDateTime';
 import styles from './History.module.css';
 
 export function AnalysisLogs() {
@@ -23,7 +24,7 @@ export function AnalysisLogs() {
     <div className={styles.tableWrap}><table>
       <thead><tr>{['기록 시각', '사업장', '분류', '파일', '판정', '신뢰도'].map(v => <th key={v}>{v}</th>)}</tr></thead>
       <tbody>{rows.filter(row => row && typeof row === 'object').map((row, index) => <tr key={row.analysis_id || row.id || index}>
-        <td>{row.detected_at}</td><td>{row.site_id ? `사업장 ${row.site_id}` : '사용자 테스트'}</td>
+        <td>{`${formatOperationalTime(row.detected_at).date} ${formatOperationalTime(row.detected_at).time}`}</td><td>{row.site_id ? `사업장 ${row.site_id}` : '사용자 테스트'}</td>
         <td>{row.analysis_type || '-'}</td><td>{row.original_file_name || '-'}</td>
         <td>{row.prediction === 'wasp' ? '말벌' : row.prediction ? '말벌 아님' : '-'}</td><td>{Number.isFinite(Number(row.confidence)) ? `${(Number(row.confidence) * 100).toFixed(1)}%` : '-'}</td>
       </tr>)}</tbody>
