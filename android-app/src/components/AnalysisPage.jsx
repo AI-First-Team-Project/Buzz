@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import BottomNav from './BottomNav';
+import BottomNav from './BottomNavV2.jsx';
 import { fetchLatestAnalysis } from '../api/buzzApi';
 import { useSiteStatuses } from '../hooks/useSiteStatuses';
 import { MelSpectrogram, MfccHeatmap, SpectrumChart, WaveformChart } from './AudioAnalysisCharts';

@@ -43,7 +43,7 @@ function StatusPill({ site }) {
 
 function SiteOverview({ site, selected, onClick }) {
   return <button className={`ed-overview-card ${selected ? 'active' : ''} ${site.status === 'danger' ? 'danger' : ''}`} onClick={onClick}>
-    <div className="ed-overview-thumb"><img src={`${import.meta.env.BASE_URL}images/hero.jpg`} alt="" /></div>
+    <div className="ed-overview-thumb"><img src={`${import.meta.env.BASE_URL}images/honeybee.jpg`} alt="꿀벌과 벌집" /></div>
     <div className="ed-overview-body">
       <div className="ed-overview-title"><strong>{site.name}</strong><StatusPill site={site}/></div>
       <span>최근 갱신 <b>{formatUpdate(site.lastAnalyzedAt).time}</b></span>

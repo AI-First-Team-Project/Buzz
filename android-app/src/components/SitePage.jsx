@@ -1,7 +1,7 @@
 import { AcousticSignal } from "./AcousticMonitor.jsx";
 
 import { useEffect, useState } from "react";
-import BottomNav from "./BottomNav";
+import BottomNav from "./BottomNavV2.jsx";
 import { BuzzMark } from "./Logo";
 import { getRuntimeSites, getSiteRuntimeStatus, setSelectedSiteId } from "../types";
 
