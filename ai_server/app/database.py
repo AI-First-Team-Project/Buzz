@@ -73,6 +73,8 @@ def get_db_connection():
         user=os.getenv("DB_USER", "root"),
         password=password,
         database=os.getenv("DB_NAME", "buzz"),
+        charset="utf8mb4",
+        collation="utf8mb4_unicode_ci",
         connection_timeout=int(os.getenv("DB_CONNECT_TIMEOUT", "5")),
     )
 
