@@ -44,6 +44,16 @@ class AudioSimulatorTest(unittest.TestCase):
         np.testing.assert_array_equal(chunks[1][:123], source[chunk_samples:])
         self.assertTrue(np.all(chunks[1][123:] == 0))
 
+    def test_resampling_zero_sample_does_not_create_silent_chunk(self):
+        chunk_samples = int(SAMPLE_RATE * DURATION_SEC)
+        source = np.ones(chunk_samples + 1, dtype=np.float32)
+        source[-1] = 0
+        self.assertEqual(len(list(split_audio(source))), 1)
+
+        source[-1] = 0.5
+        self.assertEqual(len(list(split_audio(source))), 2)
+        self.assertEqual(len(list(split_audio(np.zeros(chunk_samples, dtype=np.float32)))), 1)
+
     def test_worker_upload_uses_chunk_specific_wav_name(self):
         audio = np.zeros(int(SAMPLE_RATE * DURATION_SEC), dtype=np.float32)
         job = AnalysisJob(2, Path("sample.mp3"), 4, 8.0, 10.0, encode_wav(audio))

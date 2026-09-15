@@ -36,7 +36,11 @@ def load_audio(audio_path:Path)->np.ndarray:
 def split_audio(audio:np.ndarray)->Iterator[tuple[int,np.ndarray,float,float]]:
     n=int(SAMPLE_RATE*DURATION_SEC); total=audio.size/SAMPLE_RATE
     for idx,start in enumerate(range(0,audio.size,n)):
-        source=audio[start:start+n]; chunk=np.zeros(n,dtype=np.float32); chunk[:source.size]=source
+        source=audio[start:start+n]
+        # 2초 WAV를 리샘플링할 때 끝에 붙는 무음 1샘플은 별도 분석 구간이 아니다.
+        if start and source.size == 1 and source[0] == 0:
+            continue
+        chunk=np.zeros(n,dtype=np.float32); chunk[:source.size]=source
         yield idx,chunk,idx*DURATION_SEC,min(total,(idx+1)*DURATION_SEC)
 
 def encode_wav(audio:np.ndarray)->bytes:

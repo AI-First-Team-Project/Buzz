@@ -2,6 +2,7 @@ import { jsx as _jsx } from "react/jsx-runtime";
 // 모니터링 - 사업장 상태, 위험 알림, 출입문 및 설정 공유
 import { createContext, useContext, useEffect, useState } from 'react';
 import { commandDoor, fetchDetectionSettings, fetchHistory, fetchSiteStatuses, saveDetectionSettings } from '../api/buzzApi';
+import { formatOperationalTime, koreanDate } from '../utils/formatDateTime';
 const defaultSettings = { waspAlert: true, vibration: true, autoClose: true, autoCloseThreshold: 85 };
 const storageKey = 'buzz-web-settings-v1';
 const mapSettings = value => ({ waspAlert:value.wasp_alert, vibration:value.vibration,
@@ -38,11 +39,11 @@ function mapSite(site) {
 }
 
 function mapEvent(event) {
-    const timestamp = new Date(event.timestamp);
+    const timestamp = formatOperationalTime(event.timestamp);
     return {
         id: String(event.id),
-        date: Number.isNaN(timestamp.getTime()) ? '' : timestamp.toISOString().slice(0, 10),
-        time: Number.isNaN(timestamp.getTime()) ? '' : timestamp.toLocaleTimeString('ko-KR', { hour12: false }),
+        date: timestamp.date.replaceAll('.', '-'),
+        time: timestamp.time,
         siteName: event.site_name,
         siteId: `site-${event.site_id}`,
         kind: event.type === 'gate' ? 'door' : event.type === 'danger' ? 'danger' : 'detection',
@@ -88,7 +89,7 @@ export function MonitoringProvider({ children }) {
         return () => timers.forEach(window.clearTimeout);
     }, [dangerDeadlines, settings]);
     const makeEvent = (site, kind, label) => ({
-        id: crypto.randomUUID(), date: new Date().toISOString().slice(0, 10), time: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
+        id: crypto.randomUUID(), date: koreanDate(), time: formatOperationalTime(new Date()).time,
         siteName: site.name, kind, label, aiClassification: site.aiLabel,
         aiConfidence: site.aiConfidence, doorState: site.door,
     });
