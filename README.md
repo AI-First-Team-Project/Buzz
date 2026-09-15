@@ -1,453 +1,399 @@
-# 🐝 Buzz — AI 사운드 기반 말벌 침입 감지 예측 시스템
+# 🐝 Buzz — AI 사운드 기반 말벌 침입 감지·예측 시스템
 
-> **팀 Buzz | 1차 예측 프로젝트**
-> 소음(사운드) 분석을 통해 **말벌과 꿀벌을 구분하고, 말벌 침입을 감지하는 AI 기반 예측 시스템**입니다.
+> 양봉장 주변 음향을 AI로 분석해 말벌 접근을 조기에 감지하고, 여러 사업장의 상태·감지 이력·알림·가상 방어문을 웹/모바일에서 통합 관제하는 프로젝트입니다.
 
-## 1. 프로젝트 개요
-
-양봉장 벌통 내부의 소리를 수집·분석하여 말벌의 침입 여부를 판단하고, 감지 결과를 모니터링 화면에서 확인할 수 있도록 구성하는 프로젝트입니다.
-
-실제 마이크 입력 대신 프로젝트 환경의 한계를 고려하여, 수집된 **말벌·꿀벌 음원(mp3)** 을 일정 주기로 입력하는 방식으로 실시간 환경을 시뮬레이션합니다.
-
-말벌이 감지된 경우에는 경고 메시지를 출력하고, 실제 서비스 환경에서는 벌통 뚜껑을 자동으로 닫는 등의 하드웨어 제어로 확장할 수 있도록 설계합니다.
+📚 **프로젝트 Notion**
+https://app.notion.com/p/AI-3cda03e856c38100ac89c6e0adffcc50?source=copy_link
 
 ---
+## 1. 프로젝트 개요
+
+Buzz는 양봉장 주변 음원을 **2초 / 24kHz** 단위로 분석해 `wasp / non_wasp`를 판별합니다. 말벌 감지 시 사업장을 `DANGER` 상태로 전환하고 가상 방어문을 `CLOSED`로 변경하며, 감지 이력과 알림을 저장합니다.
+
+최종 구조에서는 Kafka를 제거하고 **FastAPI 중심의 단일 AI API 구조**로 단순화했습니다. 웹 대시보드와 Capacitor 기반 Android 앱이 동일한 FastAPI API를 사용합니다.
+
+```text
+사업장 음원 / 파일 테스트
+        ↓
+      FastAPI
+        ↓
+  2초 · 24kHz 전처리
+        ↓
+      CNN 모델
+        ↓
+ wasp / non_wasp + confidence
+        ↓
+ MySQL 저장 + 상태 판단
+        ↓
+┌──────────────┬──────────────┐
+│ Web Dashboard│ Android App  │
+└──────────────┴──────────────┘
+```
 
 ## 2. 프로젝트 정보
 
 | 항목 | 내용 |
 |---|---|
-| 팀명 | Buzz |
-| 프로젝트명 | AI 사운드 기반 말벌 침입 감지 예측 시스템 |
-| 개발 기간 | 2026.08.28 ~ 2026.09.11 |
-| 발표 준비 기간 | 2026.09.12 ~ 2026.09.14 |
-| 발표일 | 2026.09.15 (발표자료 + 데모) |
+| 개발 기간 | 2026.08.28 ~ 2026.09.14 |
+| 발표일 | 2026.09.15 |
 | 팀 인원 | 4명 |
-| 목적 | 학원 프로젝트 / 이력서 / 포트폴리오 |
-| 핵심 주제 | 사운드 분석 기반 말벌·꿀벌 분류 및 말벌 침입 감지 |
+| AI 입력 기준 | 2초 / 24kHz / mono |
+| 최종 분류 | wasp / non_wasp |
+| 최종 운영 모델 | CNN |
+| AI·Backend | FastAPI |
+| DB | MySQL 8.4 |
+| Web | React 18 + Vite 5 |
+| Mobile | React 19 + Vite 7 + Capacitor + Android |
+| 배포·통합 실행 | Docker Compose |
 
----
+## 3. 핵심 기능
 
-## 3. 주요 기능
+### 실시간/자동 감지
+- 사업장별 음원 자동 분석
+- 최대 3개 사업장 음원을 한 번에 배치 분석
+- 말벌 감지 시 `NORMAL → DANGER` 상태 전환
+- 위험 상태에서 가상 방어문 `CLOSED`
+- 연속 비감지 시 `NORMAL` 복귀 로직
+- 최신 분석 결과와 Waveform / FFT / Mel-Spectrogram / MFCC 제공
 
-- 말벌·꿀벌 사운드 데이터 입력
-- 오디오 데이터 전처리
-- MFCC 등 오디오 특징 추출
-- AI 모델을 이용한 말벌/꿀벌 분류
-- 분류 결과 및 감지 상태 저장
-- Kafka 기반 데이터 입력 시뮬레이션
-- 말벌 탐지 시 경고 상태 출력
-- 모바일에서 확인 가능한 모니터링 화면 제공
-- AI 분석 결과 조회
-- 향후 벌통 뚜껑 제어 등 하드웨어 연동 확장
-
----
-
-## 4. 시스템 흐름
-
-```text
-말벌 / 꿀벌 음원 데이터
-        ↓
-Kafka 기반 입력 시뮬레이션
-        ↓
-데이터 전처리 / 특징 추출
-        ↓
-AI 추론 모델
-        ↓
-말벌 / 꿀벌 분류
-        ↓
-결과 저장 및 전달
-        ↓
-모니터링 UI
-        ↓
-말벌 감지 시 경고
-```
-
-실제 환경으로 확장할 경우 다음과 같은 흐름을 목표로 합니다.
+### 3개 사업장 시뮬레이터
 
 ```text
-마이크
-  ↓
-Edge Driver
-  ↓
-AI 추론 모듈
-  ↓
-서버
-  ↓
-모니터링 UI / 경고
-  ↓
-벌통 제어 장치
+data/audio_simulator/
+├─ site1/
+├─ site2/
+└─ site3/
 ```
 
----
+- 각 사업장 폴더의 WAV/MP3 파일을 독립적으로 순차 재생
+- 전체 음원을 2초 단위로 분할해 FastAPI로 전송
+- 마지막 구간이 2초 미만이면 zero padding
+- START / STOP 지원
+- 현재 파일, chunk 번호, 분석 구간, AI 결과 상태 제공
+- API 오류 발생 시 임의의 정상값으로 대체하지 않고 `ERROR` 상태 유지
 
-## 5. 데이터 입력 방식
+### 파일 테스트
+- WAV/MP3 파일 업로드
+- 파일 전체를 처음부터 끝까지 2초 단위로 분석
+- `0~2초`, `2~4초`처럼 chunk별 결과 기록
+- 연속된 wasp chunk를 하나의 감지 구간으로 병합
+- 특정 chunk 선택 시 상세 그래프 확인
+- 테스트 결과는 자동 감지 상태/문 제어에 영향을 주지 않음
+- 테스트 이력은 MySQL에 저장하고 DB 장애 시 프로세스 메모리로 fallback
 
-본 프로젝트에서는 실제 마이크를 통한 완전한 실시간 입력 대신, 기존에 수집한 말벌·꿀벌 음원을 사용하여 실시간 환경을 시뮬레이션합니다.
+### 이력·분석·보고서
+- 최근 말벌 감지 이력
+- 최근 7일 말벌 감지 추이 집계
+- `live / test / simulation` 분석 로그 구분
+- 분석 로그 상세 조회
+- 감지 이력 기반 보고서 생성 이력 저장
+- 웹 화면에서 PDF 보고서 생성 지원
+- 긴 목록은 페이지네이션으로 표시
 
-- 입력 데이터: 말벌 / 꿀벌 음원 파일
-- 파일 형식: MP3 또는 전처리 과정에서 변환된 오디오 파일
-- 입력 주기: 약 10~30초
-- 입력 처리: Kafka 활용
-- 목적: 현재 입력된 소리가 말벌인지 꿀벌인지 AI 모델이 분류
+### 알림
+- 감지 이벤트 기반 알림 저장
+- 읽음 / 전체 읽음 처리
+- 읽지 않은 알림 개수 조회
+- 웹·모바일 알림 센터에서 확인
 
-> DB 저장 시에는 원본 음원을 그대로 저장하지 않고, 입력 즉시 전처리·특징 추출을 수행한 뒤 결과(특징 벡터/스펙트로그램)만 저장하여 저장 용량을 절감하는 방식을 검토합니다. 다만 디버깅·데모용으로 이상 탐지된 케이스의 원본은 일부 보관하는 것을 권장합니다.
+### 사업장 관리
+- 사업장 목록 조회
+- 신규 사업장 등록
+- 사업장별 현재 위험 상태 / 마지막 분석 / 방어문 상태 확인
+- 웹·모바일 모두 가로 스크롤 없이 반응형 레이아웃 적용
 
----
+## 4. AI 모델
 
-## 6. AI 처리
+프로젝트에서는 다음 6개 모델을 동일한 문제에 비교했습니다.
 
-### 데이터 전처리
+- RandomForest
+- LightGBM
+- XGBoost
+- CNN
+- CRNN
+- MobileNetV2
 
-- 오디오 길이 정규화
-- 샘플링 레이트 통일
-- 노이즈 제거
-- 볼륨 정규화
-- 필요 시 구간 분할
+최종 서비스 모델은 **CNN**으로 설정되어 있으며 Docker 환경의 기본값도 `BUZZ_AI_MODEL_NAME=CNN`입니다.
 
-### 특징 추출
+주요 평가 기준:
+- Wasp Recall
+- F1-score
+- False Negative
+- Confusion Matrix
+- 추론 속도
+- 모델 크기
 
-대표적으로 다음과 같은 음향 특징을 활용할 예정입니다.
+## 5. 데이터 및 전처리
 
-- MFCC
-- Mel Spectrogram
-- Zero Crossing Rate
-- Spectral Centroid
-- 기타 주파수 기반 특징
+### 기본 규격
+- 24kHz
+- mono
+- 2초 단위 WAV
 
-### 모델
+### 데이터 구성
+- **wasp**: AI-Hub 「지능형 양봉 데이터」 및 공개 말벌 음원 중 말벌 버징이 명확한 구간
+- **non_wasp**: Hugging Face `NOSInovacao/AI-Belha` 꿀벌/벌통 음향 + 환경음/기타 음원
 
-수집 데이터와 프로젝트 기간을 고려하여 말벌/꿀벌을 분류할 수 있는 모델을 선정하고 학습합니다.
+### 전처리 원칙
+- 말소리·장비음 등 타 소리가 지배적인 구간 제외
+- 원본 source/group 기준으로 Train / Validation / Test 분리
+- 증강은 Train 데이터에만 적용
+- 필요 시 volume / pitch / time shift 및 환경 노이즈 혼합 적용
+
+## 6. 주요 API
+
+### 분석
+- `POST /api/auto/analyze`
+- `POST /api/auto/analyze-batch`
+- `POST /api/internal/analyze-file`
+- `GET /api/analysis/latest/{site_id}`
+- `POST /api/test/analyze`
+- `POST /api/test/analyze-full`
+- `GET /api/test/history`
+- `GET /api/test/history/{test_id}`
+
+### 사업장·상태·이력
+- `GET /api/status`
+- `GET /api/status/{site_id}`
+- `GET /api/sites`
+- `POST /api/sites`
+- `POST /api/door/{site_id}`
+- `GET /api/history`
+- `GET /api/history/summary`
+
+### 로그·보고서
+- `GET /api/analysis-logs`
+- `GET /api/analysis-logs/{event_id}`
+- `GET /api/reports`
+- `POST /api/reports`
+
+### 알림·시뮬레이터
+- 알림 읽음/전체 읽음/미확인 개수 API
+- 시뮬레이터 START / STOP / 상태 / 로그 API
+
+Swagger에서 전체 스펙을 확인할 수 있습니다.
+
+## 7. MySQL 저장 항목
+
+주요 테이블:
+
+- `sites` — 사업장
+- `detection_events` — live/test/simulation 분석 이벤트
+- `analysis_graph_data` — 분석 그래프 데이터
+- `gate_status` — 현재 방어문 상태
+- `gate_events` — 방어문 변경 이력
+- `file_test_runs` — 파일 테스트 결과
+- `status_history` — 상태 변경 이력
+- `report_history` — 보고서 생성 이력
+- `site_runtime_state` — 사업장 현재 상태 복원용
+- `app_settings` — 감지 설정
+- `notifications` — 알림
+
+## 8. 프로젝트 구조
 
 ```text
-Audio
-  ↓
-Preprocessing
-  ↓
-Feature Extraction
-  ↓
-Model
-  ↓
-Hornet / Bee
+Buzz-dev/
+├─ ai_model/          # 데이터 분석, 모델 비교/학습, 추론 코드
+├─ ai_server/         # FastAPI API, AI 추론, 상태/DB/시뮬레이터
+├─ android-app/       # Capacitor 기반 모바일 앱
+├─ web/               # PC 웹 관제 대시보드
+├─ data/
+│  └─ audio_simulator/# site1~site3 시뮬레이션 음원
+├─ docs/              # 아키텍처·DB·완료 메모
+├─ mysql.sql          # MySQL 초기 스키마
+├─ docker-compose.yml # mysql + ai-server + simulator + web
+├─ .env.example
+└─ README.md
 ```
 
----
+> `backend/`, `database/`, `docker/` 폴더 일부는 초기 구조/확장용 흔적이며, 현재 핵심 서버는 `ai_server/`의 FastAPI입니다.
 
-## 7. UI 구성
+## 9. 실행 방법
 
-모바일에서도 확인할 수 있도록 **React 기반 반응형 웹**으로 구성합니다.
+### 9-1. Docker Compose 전체 실행 — 권장
 
-현재 주요 화면은 다음과 같습니다.
-
-### 모니터링 페이지
-
-- 현재 재생/입력 중인 사운드 상태
-- AI 분석 결과
-- 말벌 감지 여부
-- 경고 상태
-- 벌통 상태 시각화
-
-### AI 분석 결과 페이지
-
-- 감지 시간
-- 입력 데이터
-- 예측 결과
-- 예측 확률 또는 Confidence
-- 과거 감지 기록
-
-모니터링 화면은 구현 난이도에 따라 벌·말벌·벌통을 **도트(픽셀) 애니메이션 또는 AI 생성 영상** 등으로 단순화하여 표현할 수 있습니다.
-
----
-
-## 8. MLOps / CI-CD
-
-프로젝트 배포 및 운영 자동화를 위해 다음과 같은 파이프라인을 목표로 합니다.
-
-```text
-Git
- ↓
-Jenkins
- ↓
-Docker
- ↓
-Docker Hub
- ↓
-배포 환경
-```
-
-주요 목표:
-
-- 버전 관리
-- 자동 빌드
-- Docker 이미지 생성
-- 배포 과정 자동화
-- 팀 개발 환경 표준화
-
-세부 Git 협업 규칙은 **15. 개발 협업 규칙**을 참고합니다.
-
----
-
-## 9. 역할 분담
-
-### ① AI 모델 엔지니어
-
-- 오디오 데이터 전처리
-- 노이즈 제거
-- MFCC 등 특징 추출
-- 학습 데이터 구성
-- 분류 모델 설계 및 학습
-- 추론 모듈 개발
-
-### ② 데이터 / 인프라 엔지니어
-
-- 말벌·꿀벌 음원 수집
-- 데이터 저장 구조 설계
-- DB 설계
-- Kafka 기반 데이터 입력 파이프라인
-- 데이터 스트리밍 처리
-- 서버 간 통신 구성
-
-### ③ 프론트엔드 / UI 엔지니어
-
-- 모바일 대응 UI 구현
-- 모니터링 페이지
-- AI 분석 결과 페이지
-- 감지 상태 시각화
-- UI 동작 테스트
-- 사용자 시나리오 검증
-
-### ④ MLOps / 운영 엔지니어
-
-- 개발 환경 설정
-- Git 협업 환경 관리
-- Jenkins 구성
-- Docker 환경 구성
-- CI/CD 파이프라인 구축
-- 배포 및 인프라 테스트
-
-> 테스트와 검증은 특정 담당자만 수행하지 않고, 각 파트 결과물을 팀원 간 교차 확인하는 방식으로 진행합니다.
-
----
-
-## 10. 예상 기술 스택
-
-> 실제 기술 스택은 프로젝트 진행 과정에서 변경될 수 있습니다.
-
-### AI / Data
-
-- Python
-- Librosa
-- NumPy
-- Pandas
-- Scikit-learn
-- PyTorch 또는 TensorFlow
-
-### Data Pipeline
-
-- Apache Kafka
-
-### Backend
-
-- Java
-- Spring Boot
-
-### Database
-
-- MySQL
-
-### Frontend
-
-- React
-- Responsive Web
-
-### DevOps
-
-- Git / GitHub
-- Jenkins
-- Docker
-- Docker Hub
-
----
-
-## 11. 프로젝트 목표
-
-본 프로젝트의 1차 목표는 실제 양봉장 시스템 전체를 구현하는 것이 아니라,
-
-**수집된 사운드 데이터를 기반으로 말벌과 꿀벌을 구분하고, 말벌 침입 상황을 유사 실시간으로 탐지하는 AI 예측 시스템을 구현하는 것**입니다.
-
-이를 통해 다음 흐름을 하나의 프로젝트에서 경험하는 것을 목표로 합니다.
-
-```text
-데이터 수집
-→ 데이터 전처리
-→ 특징 추출
-→ 모델 학습
-→ 추론
-→ 데이터 전달
-→ 결과 저장
-→ UI 시각화
-→ 배포
-```
-
----
-
-## 12. 향후 확장 방향
-
-- 실제 마이크 입력
-- 실시간 스트리밍 분석
-- 다양한 말벌 종 분류
-- 주변 환경 소음 분류
-- 여러 벌통 동시 모니터링
-- 말벌 탐지 알림
-- 벌통 자동 개폐 장치 연동
-- Edge Device 기반 추론
-- 모델 재학습 및 버전 관리
-- 실제 양봉장 환경 테스트
-
----
-
-## 13. 프로젝트 마일스톤
-
-| 마일스톤 | 목표 시점 | 완료 기준 |
-|---|---|---|
-| **M1. 기획/데이터 확보 시작** | 8/28 | 문제 정의, 역할, 기술 스택, 데이터 소스, 라벨 기준 확정 |
-| **M2. Baseline 구축** | 9/1~9/2 | 최소 데이터셋 + 전처리 + 첫 모델 학습 + 성능 측정 |
-| **M3. 데이터/모델 개선 1차** | 9/4~9/5 | EDA 기반 전처리/특징 추출 개선, Baseline 대비 성능 비교 |
-| **M4. 개선 모델 확정** | 9/8 | 최종 후보 모델, 평가 지표, Confusion Matrix, 개선 효과 확정 |
-| **M5. 시스템 통합** | 9/10~9/11 | AI 추론 ↔ Backend ↔ DB ↔ UI 전체 흐름 동작 |
-| **M6. 최종 검증/발표 준비** | 9/14 | 시연 시나리오, 테스트, 발표자료, 결과 정리 완료 |
-| **발표** | 9/15 | 최종 시연 |
-
-### 일정 운영 방향
-
-프로젝트 기간이 짧기 때문에 모든 기능을 동시에 완성하기보다 다음 순서로 진행합니다.
-
-```text
-기획 / 데이터 확보
-→ Baseline 모델 구축
-→ 데이터·모델 개선
-→ 최종 모델 확정
-→ Backend / DB / UI 통합
-→ 최종 검증 및 발표 준비
-```
-
-AI 모델은 시스템 통합 전에 최소한의 추론 결과를 제공할 수 있는 상태를 먼저 확보하고,
-Backend·DB·Frontend는 모델 결과를 연동할 수 있도록 병행 개발합니다.
-
----
-
-
-
-## 14. 개발 협업 규칙
-
-### 브랜치 전략
-
-```
-main            배포 가능한 최종 안정 버전만 병합 (직접 push 금지)
- └─ dev         팀 전체 통합 개발 브랜치
-     ├─ feature/ai-model       ① AI 모델 작업
-     ├─ feature/data-pipeline  ② 데이터/인프라(Kafka 등) 작업
-     ├─ feature/ui             ③ 프론트엔드/UI 작업
-     └─ feature/mlops          ④ CI/CD, Docker, 배포 작업
-```
-
-- `main`: 발표/데모용 최종 버전만 존재. 직접 push 금지.
-- `dev`: 매일 작업 종료 시점에 각자 브랜치를 여기로 PR(Pull Request).
-- `feature/*`: 개인 작업 브랜치. 작업 전 항상 `dev`를 최신화한 뒤 브랜치 생성.
+루트에서 `.env.example`을 복사해 `.env`를 생성합니다.
 
 ```bash
-# 새 작업 시작 전
-git checkout dev
-git pull origin dev
-git checkout -b feature/내작업이름
+cp .env.example .env
 ```
 
-### 커밋 메시지 컨벤션
+Windows PowerShell에서는 직접 `.env` 파일을 만들고 아래 값을 설정해도 됩니다.
 
-```
-[타입] 간단한 설명
-
-예)
-[feat] Kafka producer 기본 구조 구현
-[fix] 스펙트로그램 변환 시 샘플레이트 오류 수정
-[docs] README 업데이트
-[refactor] 추론 모듈 함수 분리
-[test] 이상탐지 모델 정확도 테스트 코드 추가
-[chore] .gitignore 정리
+```env
+MYSQL_DATABASE=buzz
+MYSQL_USER=buzz_app
+MYSQL_PASSWORD=원하는_로컬_비밀번호
+MYSQL_ROOT_PASSWORD=루트용_다른_비밀번호
+DB_CONNECT_TIMEOUT=5
 ```
 
-| 타입 | 의미 |
-|---|---|
-| feat | 새 기능 추가 |
-| fix | 버그 수정 |
-| docs | 문서 수정 |
-| refactor | 기능 변화 없는 코드 개선 |
-| test | 테스트 코드 |
-| chore | 빌드/설정/기타 |
+실행:
 
-- 커밋은 작은 단위로 자주 (하루에 최소 1회 이상 push 권장)
-- 커밋 메시지는 한글/영어 무관, **무엇을 했는지 한 줄로 명확하게**
-
-### Pull Request(PR) 규칙
-
-1. `feature/*` → `dev`로 PR 생성
-2. PR 제목: `[역할] 작업 내용 요약` (예: `[AI모델] 전처리 파이프라인 구현`)
-3. 최소 1명 이상 팀원 리뷰 후 병합 (급한 경우 구두 확인 후 셀프 병합 가능)
-4. `dev` → `main`은 **MLOps 담당(④)이 검증 후 병합**
-5. 충돌(conflict) 발생 시 당사자끼리 바로 소통해서 해결 (방치 금지)
-
-### 폴더 구조 (제안)
-
-```
-├── ai_model/           # ① 전처리, 특징 추출, 학습/추론 코드
-├── data_pipeline/       # ② Kafka producer/consumer, 저장소 연동
-├── ui/                  # ③ 프론트엔드(React)
-├── mlops/               # ④ Dockerfile, Jenkinsfile, 배포 스크립트
-├── docs/                 # 발표자료, 기획 문서, 회의록
-├── .gitignore
-└── README.md
+```bash
+docker compose up -d --build
 ```
 
-### .gitignore 필수 항목
+접속:
+- Web: `http://localhost:5173`
+- FastAPI Swagger: `http://localhost:8000/docs`
+- Health Check: `http://localhost:8000/health`
 
-```
-# 데이터/모델 (용량 큰 파일은 git에 올리지 않음)
-*.mp3
-*.wav
-*.h5
-*.pt
-data/raw/
+로그:
 
-# 환경
-.env
-__pycache__/
-*.pyc
-.venv/
-venv/
-
-# IDE
-.vscode/
-.idea/
+```bash
+docker compose logs -f ai-server simulator web mysql
 ```
 
-> 원본 음원, 학습된 모델 파일 등 용량이 큰 파일은 git 대신 Google Drive 등 별도 공유 저장소를 사용합니다.
+중지:
 
-### 협업 규칙
+```bash
+docker compose down
+```
 
-- **매일 작업 종료 전** 자기 브랜치를 `dev`에 push (최소 1회)
-- 다른 사람 코드 작업 중인 파일은 미리 슬랙/카톡으로 공유 후 수정
-- 큰 구조 변경(폴더 이동, 인터페이스 변경 등)은 팀 전체 합의 후 진행
-- 매일 잠깐이라도 진행 상황 공유 (막힌 부분은 바로 이야기하기)
+DB 볼륨까지 초기화:
+
+```bash
+docker compose down -v
+docker compose up -d --build
+```
+
+### 9-2. 웹 로컬 실행
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+### 9-3. FastAPI 로컬 실행
+
+```bash
+pip install -r ai_server/requirements.txt
+python -m ai_server.run
+```
+
+또는 환경에 따라:
+
+```bash
+python ai_server/run.py
+```
+
+### 9-4. Android 앱
+
+```bash
+cd android-app
+npm install
+npm run build
+npx cap sync android
+npx cap open android
+```
+
+실기기에서 사용할 경우 `VITE_API_BASE_URL`을 FastAPI가 실행 중인 PC의 LAN 주소로 설정합니다.
+
+```text
+http://192.168.x.x:8000
+```
+
+## 10. 웹 화면 구성
+
+- **대시보드**: 사업장별 현재 상태, 최근 분석, 감지 현황
+- **분석**: 최신 실제 분석 결과와 Waveform / FFT / Mel / MFCC
+- **이력**: 감지 내역, 최근 7일 추이, 필터, 보고서
+- **음원 테스트**: 파일 전체 분석, chunk 상세, 테스트 이력
+- **사업장**: 사업장 조회/등록
+- **알림**: 위험 감지 알림 및 읽음 처리
+- **설정**: 감지 관련 설정 관리
+
+`최근 분석 결과`는 AI가 실제 음원 chunk를 분석한 결과이고, `시스템 로그`는 실행/통신/처리 상태를 확인하기 위한 운영 로그로 구분합니다.
+
+## 11. 최종 구현 상태
+
+- [x] Kafka 제거 및 FastAPI 직접 처리 구조
+- [x] 2초 / 24kHz 음원 분석
+- [x] CNN 운영 모델 연결
+- [x] 3개 사업장 독립 오디오 시뮬레이터
+- [x] MySQL 연동 및 런타임 상태 복원
+- [x] 자동 감지 / 테스트 / 시뮬레이션 로그 구분 저장
+- [x] 위험 상태 및 가상 방어문 제어
+- [x] 파일 전체 2초 단위 테스트
+- [x] Waveform / FFT / Mel-Spectrogram / MFCC 시각화
+- [x] 감지 이력 및 7일 추이
+- [x] 보고서 생성 이력
+- [x] 사업장 등록
+- [x] 알림 센터 및 읽음 처리
+- [x] 웹 관제 대시보드
+- [x] Capacitor Android 앱
+- [x] Docker Compose 통합 실행
+- [x] 주요 이력 목록 페이지네이션 및 모바일 반응형 UI
+
+## 12. 검증
+
+프로젝트 내 테스트 코드:
+
+```text
+ai_server/tests/
+├─ test_analysis_contract.py
+├─ test_audio_simulator.py
+├─ test_detection_settings.py
+├─ test_history_policy.py
+├─ test_runtime_persistence.py
+└─ test_state_service.py
+```
+
+최종 통합 확인 시 권장 순서:
+1. `docker compose up -d --build`
+2. `/health` 및 `/docs` 확인
+3. `site1~site3` 시뮬레이터 동작 확인
+4. 웹 대시보드 상태 갱신 확인
+5. 말벌 감지 시 DANGER / CLOSED / 알림 / 이력 저장 확인
+6. 파일 테스트 업로드 후 chunk별 결과 및 상세 그래프 확인
+7. 보고서·사업장 등록·페이지네이션 확인
+8. Android 실기기에서 같은 API 연결 확인
+
+## 13. 기술 선택 이유
+
+- **FastAPI**: Python 기반 AI 추론 코드와 직접 연결하기 쉽고 API 구성이 간결함
+- **CNN**: 음향 특징을 학습하는 모델 비교 결과를 기반으로 최종 운영 모델로 사용
+- **MySQL**: 사업장·감지·알림·보고서·테스트 이력을 영속적으로 관리
+- **React + Vite**: 웹 관제 UI를 빠르게 구성하고 컴포넌트화하기 적합
+- **Capacitor**: 웹 기술을 재사용하면서 Android 앱으로 패키징 가능
+- **Docker Compose**: MySQL / FastAPI / Simulator / Web 실행 환경을 팀원 PC에서도 동일하게 재현
+
+
+## 14. 데이터셋 및 참고 출처
+
+### AI-Hub — 지능형 양봉 데이터
+- 제공처: **AI-Hub**
+- 데이터셋: **지능형 양봉 데이터** (`dataSetSn=71488`)
+- Buzz 활용: 말벌 관련 음향 및 양봉 환경 데이터 참고, `wasp` 학습 데이터 구성에 활용
+- 링크: https://www.aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&aihubDataSe=realm&dataSetSn=71488
+- 사용 시 AI-Hub 원문에 명시된 이용 조건과 라이선스를 확인합니다.
+
+### Hugging Face — NOSInovacao/AI-Belha
+- 제공처: **Hugging Face / NOSInovacao**
+- 데이터셋: `NOSInovacao/AI-Belha`
+- 구성: 실제 벌통에서 수집된 mono WAV 86개, 약 60초 길이, 16kHz 음원
+- 원래 목적: 여왕벌의 존재 및 상태를 음향으로 분류하기 위한 데이터셋
+- Buzz 활용: 원본의 여왕벌 상태 라벨을 말벌 정답 라벨로 사용하지 않고, **말벌이 없는 실제 꿀벌·벌통 환경 음향**으로 활용하여 `non_wasp` 데이터 구성에 사용
+- 라이선스: **MIT License**
+- 링크: https://huggingface.co/datasets/NOSInovacao/AI-Belha
+
+### 공개 말벌 음원
+- YouTube 등 공개 영상에서 말벌 버징이 명확하게 들리는 구간만 선별해 `wasp` 데이터 보강에 활용했습니다.
+- 사람 음성, 장비음, 강한 환경음 등 말벌보다 다른 소리가 지배적인 구간은 제외했습니다.
+- 원본 영상별 `source_id`를 유지해 동일 원본에서 잘린 음원이 Train / Validation / Test에 섞이지 않도록 관리했습니다.
+- 공개 음원은 각 원본 게시물의 라이선스 및 이용 조건을 따릅니다.
+
+### 데이터 사용 및 전처리 원칙
+- 모든 학습 음원은 최종적으로 **24kHz / mono / 2초** 기준으로 통일합니다.
+- 원본 source/group 기준으로 Train / Validation / Test를 분리해 데이터 누수를 방지합니다.
+- 데이터 증강은 Train 데이터에만 적용합니다.
+- 외부 데이터는 원본 데이터셋의 목적과 라벨 의미를 그대로 말벌 라벨로 오인하지 않고, Buzz의 `wasp / non_wasp` 기준에 맞게 재구성해 사용합니다.
+- 외부 공개 데이터 사용 시 각 제공처의 라이선스와 이용 조건을 우선 적용합니다.
 
 ---
 
-## Contributors
+### 프로젝트 핵심 한 줄
 
-**Team Buzz** — 4인 팀 프로젝트
-
-| 역할 | 담당 |
-|---|---|
-| ① AI 모델 엔지니어 | 홍준희 |
-| ② 데이터 / 인프라 엔지니어 | 강성민 |
-| ③ 프론트엔드 / UI 엔지니어 | 김형준 |
-| ④ MLOps / 운영 엔지니어 | 오금빈 |
+**“양봉장 소리를 AI로 듣고, 말벌 위험을 웹·모바일에서 즉시 확인하는 사운드 기반 스마트 양봉 관제 시스템”**

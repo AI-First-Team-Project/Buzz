@@ -1,0 +1,9 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+uploads/*
+!uploads/.gitkeep
+static/analysis/*
+!static/analysis/.gitkeep
+.env

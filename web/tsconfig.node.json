@@ -1,0 +1,11 @@
+// 타입 검사 - Vite 설정용 TypeScript 컴파일 설정
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["vite.config.ts"]
+}

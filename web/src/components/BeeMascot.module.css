@@ -1,0 +1,103 @@
+/* 공통 UI - 벌 마스코트 스타일 (android-app 디자인과 동일) */
+.mascot {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ffc632;
+  position: relative;
+  flex: none;
+  box-shadow: inset 0 -8px 0 #2a251b;
+}
+
+.mascotDanger {
+  background: #f19a2b;
+  box-shadow: inset 0 -8px 0 #23201e;
+}
+
+.wing {
+  position: absolute;
+  width: 19px;
+  height: 24px;
+  border-radius: 70% 35%;
+  background: rgba(238, 248, 255, 0.9);
+  border: 1px solid #dce6ea;
+  top: 10px;
+  z-index: -1;
+}
+
+.wingLeft {
+  left: -12px;
+  transform: rotate(-30deg);
+}
+
+.wingRight {
+  right: -12px;
+  transform: scaleX(-1) rotate(-30deg);
+}
+
+.ant {
+  position: absolute;
+  width: 2px;
+  height: 11px;
+  background: #493316;
+  top: -8px;
+}
+
+.antLeft {
+  left: 14px;
+  transform: rotate(-20deg);
+}
+
+.antRight {
+  right: 14px;
+  transform: rotate(20deg);
+}
+
+.eye {
+  position: absolute;
+  width: 4px;
+  height: 5px;
+  border-radius: 50%;
+  background: #33291e;
+  top: 13px;
+}
+
+.eyeLeft {
+  left: 13px;
+}
+
+.eyeRight {
+  right: 13px;
+}
+
+.mascotDanger .eye {
+  width: 7px;
+  height: 2px;
+  border-radius: 0;
+}
+
+.mascotDanger .eyeLeft {
+  left: 10px;
+  transform: rotate(18deg);
+}
+
+.mascotDanger .eyeRight {
+  right: 10px;
+  transform: rotate(-18deg);
+}
+
+.mouth {
+  position: absolute;
+  width: 11px;
+  height: 5px;
+  border-bottom: 2px solid #6d4920;
+  border-radius: 50%;
+  left: 17px;
+  top: 23px;
+}
+
+.mascotDanger .mouth {
+  border-bottom: 0;
+  border-top: 2px solid #731f17;
+  top: 26px;
+}

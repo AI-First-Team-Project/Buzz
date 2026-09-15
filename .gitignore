@@ -1,0 +1,113 @@
+# ==================================================
+# Buzz Project - root .gitignore
+# Python / FastAPI / AI / React / Android
+# ==================================================
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ---------- FastAPI runtime files ----------
+ai_server/uploads/*
+!ai_server/uploads/.gitkeep
+ai_server/static/analysis/*
+!ai_server/static/analysis/.gitkeep
+
+# ---------- Incoming audio ----------
+# Runtime input folder: keep the folder itself, not incoming files
+data/raw/*
+!data/raw/.gitkeep
+
+# Simulator audio is shared separately; keep only the three site folders.
+data/audio_simulator/**/*.wav
+data/audio_simulator/**/*.mp3
+
+# ---------- AI generated artifacts ----------
+# Generated datasets / features / temporary outputs
+/ai_model/audio/
+/ai_model/demo_audio/
+spectrogram_data/
+spectrogram_split/
+temp/
+
+# Trained model binaries (share through release/storage when needed)
+models/
+*.h5
+*.keras
+*.pkl
+*.pickle
+*.joblib
+*.onnx
+*.tflite
+
+# Track only deployable model files in ai_model/models.
+!/ai_model/models/
+/ai_model/models/*
+!/ai_model/models/*.keras
+!/ai_model/models/*.pkl
+
+# ---------- Node / React / Vite ----------
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------- Android / Gradle / Capacitor ----------
+.gradle/
+**/build/
+local.properties
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# ---------- IDE / editor ----------
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# AI coding tools / local workspace metadata
+.agents/
+.codex/
+
+# ---------- OS files ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- Logs / temp ----------
+# Temporary presentation draft
+
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+~$*
